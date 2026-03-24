@@ -19,10 +19,6 @@
     <Compile Include="**/*.cs" Exclude="obj/**;bin/**;Generated/**" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Include only the custom generated files from our source generator -->
-    <Compile Include="Generated/Teams.Notifications.AdaptiveCardGen/**/*.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="AdaptiveCards" Version="*" />
     <PackageReference Include="Microsoft.Identity.Web" Version="*" />
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="*" />
