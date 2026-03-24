@@ -26,6 +26,7 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.Azure.Kusto.Data" Version="*" />
+		<PackageReference Include="Microsoft.Bcl.Memory" Version="*" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Teams.Notifications.Api\Teams.Notifications.Api.csproj" />

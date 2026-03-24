@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,14 +9,16 @@
     <!-- Tells the compiler to show the files from Teams.Notifications.AdaptiveCardGen This is useful for debugging purposes -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>Generated</CompilerGeneratedFilesOutputPath>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <Target Name="RunFormatter" AfterTargets="Build">
     <Exec Command="dotnet run --project ../Teams.Notifications.Formatter -- format" />
   </Target>
   <ItemGroup>
-    <!-- Tells the compiler to ignore the generated files when compiling the project (it will still be part of the compilation) -->
-    <Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
-    <None Include="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+    <!-- Include source files for compilation, excluding obj and bin folders -->
+    <Compile Include="**/*.cs" Exclude="obj/**;bin/**;$(CompilerGeneratedFilesOutputPath)/**" />
+    <!-- Only include custom generated files (not SDK-generated files) -->
+    <Compile Include="$(CompilerGeneratedFilesOutputPath)/Teams.Notifications.AdaptiveCardGen/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AdaptiveCards" Version="*" />
@@ -34,6 +36,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="*" />
     <PackageReference Include="Microsoft.Graph.Beta" Version="*-*" />
     <PackageReference Include="Uniphar.Platform.Telemetry" Version="*" />
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="*" />
     <ProjectReference Include="..\Teams.Notifications.AdaptiveCardGen\Teams.Notifications.AdaptiveCardGen.csproj" OutputItemType="Analyzer" />
     <AdditionalFiles Include="Templates\**\*.json" />
   </ItemGroup>
