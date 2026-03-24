@@ -15,10 +15,12 @@
     <Exec Command="dotnet run --project ../Teams.Notifications.Formatter -- format" />
   </Target>
   <ItemGroup>
-    <!-- Include source files for compilation, excluding obj and bin folders -->
-    <Compile Include="**/*.cs" Exclude="obj/**;bin/**;$(CompilerGeneratedFilesOutputPath)/**" />
-    <!-- Only include custom generated files (not SDK-generated files) -->
-    <Compile Include="$(CompilerGeneratedFilesOutputPath)/Teams.Notifications.AdaptiveCardGen/**/*.cs" />
+    <!-- Include all source files except obj, bin, and generated folders -->
+    <Compile Include="**/*.cs" Exclude="obj/**;bin/**;Generated/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Include only the custom generated files from our source generator -->
+    <Compile Include="Generated/Teams.Notifications.AdaptiveCardGen/**/*.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AdaptiveCards" Version="*" />
