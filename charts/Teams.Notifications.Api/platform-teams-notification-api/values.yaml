@@ -5,5 +5,8 @@ nameOverride: platform-teams-notification-api
 appPath: /platform-teams-notification-api
 healthUrl: /health
 environment: dev
+ingress:
+  host: "api.{env}.uniphar.ie"
+  healthPath: /platform-teams-notification-api/health
 env:
   ASPNETCORE_ENVIRONMENT: "dev"

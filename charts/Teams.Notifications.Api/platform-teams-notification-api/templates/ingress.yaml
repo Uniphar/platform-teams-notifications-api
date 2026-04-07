@@ -1,17 +1,15 @@
 {{- $name := include "platform-teams-notification-api.name" . -}}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+{{- $host := .Values.ingress.host | replace "{env}" .Values.environment | replace ".prod." "." -}}
+apiVersion: ingress.uniphar.ie/v1
+kind: AbstractIngress
 metadata:
   name: {{ $name }}
 spec:
-  ingressClassName: nginx-private
-  rules:
-  - http:
-      paths:
-      - path: {{ .Values.appPath }}
-        backend:
-          service:
-            name: {{ $name }}-srv
-            port:
-              number: 80
-        pathType: Prefix
+  isPrivate: true
+  hostname: {{ $host }}
+  serviceName: {{ $name }}-srv
+  servicePort: 80
+  urlPrefix: {{ .Values.appPath }}
+  annotations:
+    - name: "healthcheck.path"
+      value: {{ .Values.ingress.healthPath }}
