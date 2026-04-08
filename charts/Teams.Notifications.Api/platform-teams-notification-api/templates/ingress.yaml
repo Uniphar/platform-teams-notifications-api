@@ -1,15 +1,10 @@
 {{- $name := include "platform-teams-notification-api.name" . -}}
-{{- $host := .Values.ingress.host | replace "{env}" .Values.environment | replace ".prod." "." -}}
 apiVersion: ingress.uniphar.ie/v1
 kind: AbstractIngress
 metadata:
   name: {{ $name }}
 spec:
   isPrivate: true
-  hostname: {{ $host }}
   serviceName: {{ $name }}-srv
   servicePort: 80
   urlPrefix: {{ .Values.appPath }}
-  annotations:
-    - name: "healthcheck.path"
-      value: {{ .Values.ingress.healthPath }}
