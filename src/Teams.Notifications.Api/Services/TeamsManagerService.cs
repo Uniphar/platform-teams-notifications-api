@@ -230,7 +230,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             .GetAsync(
                 requestConfiguration =>
                 {
-                    requestConfiguration.QueryParameters.Top = 100; // default is 20, but chats can be very active so we increase it a bit
+                    requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
                 },
                 token);
         // no need to do anything if there is no message
@@ -239,7 +239,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
         var chatPageCount = 0;
-        // go 4 pages back, roughly 400 messages MAX, we can't filter 
+        // go max 4 times top* 5 will be the number of messages
         while (foundMessage == null && messagesResponse?.OdataNextLink != null && chatPageCount < 4)
         {
             chatPageCount++;
@@ -268,7 +268,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             .Messages
             .GetAsync(requestConfiguration =>
             {
-                requestConfiguration.QueryParameters.Top = 100; // default is 20, but chats can be very active so we increase it a bit
+                requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
             }, cancellationToken: token);
         var responses = messagesResponse
             ?.Value
@@ -282,7 +282,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
         var channelPageCount = 0;
-// go 4 pages back, roughly 400 messages MAX, we can't filter 
+        // go max 4 times top* 5 will be the number of messages 
         while (messagesResponse?.OdataNextLink != null && channelPageCount < 4)
         {
             channelPageCount++;
