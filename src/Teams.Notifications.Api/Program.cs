@@ -65,7 +65,6 @@ global using Teams.Notifications.Api.OpenApiTransformer;
 global using Teams.Notifications.Api.Services;
 global using Teams.Notifications.Api.Services.Interfaces;
 global using Uniphar.Platform.Telemetry;
-
 global using Activity = Microsoft.Agents.Core.Models.Activity;
 global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;

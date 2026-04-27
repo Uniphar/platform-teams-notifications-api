@@ -80,15 +80,16 @@ internal static class LogicAppActionHandler
                     //Do nothing, we just sent the user the error message
                     logger.LogWarning(ex, "Failed to read error message from upload response");
                 }
+
                 telemetry.TrackEvent("LogAppProcessFileUploadFailed",
-                                    new()
-                                    {
-                                        ["Team"] = teamName,
-                                        ["Channel"] = channelName,
-                                        ["FileName"] = fileName,
-                                        ["MessageId"] = messageId,
-                                        ["StatusCode"] = uploadResponse.StatusCode
-                                    });
+                    new()
+                    {
+                        ["Team"] = teamName,
+                        ["Channel"] = channelName,
+                        ["FileName"] = fileName,
+                        ["MessageId"] = messageId,
+                        ["StatusCode"] = uploadResponse.StatusCode
+                    });
                 return AdaptiveCardInvokeResponseFactory.BadRequest(messageToUser);
             }
             catch (Exception ex)

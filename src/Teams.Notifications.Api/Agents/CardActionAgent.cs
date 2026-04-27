@@ -6,11 +6,11 @@
 /// </summary>
 public class CardActionAgent : AgentApplication
 {
-    private readonly IFrontgateApiService _frontgateApiService;
-    private readonly ITeamsManagerService _teamsManagerService;
     private readonly ICardManagerService _cardManagerService;
-    private readonly ICustomEventTelemetryClient _telemetry;
+    private readonly IFrontgateApiService _frontgateApiService;
     private readonly ILogger<CardActionAgent> _logger;
+    private readonly ITeamsManagerService _teamsManagerService;
+    private readonly ICustomEventTelemetryClient _telemetry;
 
     public CardActionAgent(AgentApplicationOptions options,
         ITeamsManagerService teamsManagerService,
@@ -59,7 +59,7 @@ public class CardActionAgent : AgentApplication
 
     //     LogicApp handle of the "Reprocess File" button, will send it to Frontgate for reprocessing, and update the card
     //     accordingly, so you can't press it again
-    private Task<AdaptiveCardInvokeResponse> ProcessCardActionAsync(ITurnContext turnContext, ITurnState turnState, object data, CancellationToken token) => turnContext.HandleProcessVerbLogicAppAsync(data, _telemetry,_logger, _teamsManagerService, _frontgateApiService, _cardManagerService, token);
+    private Task<AdaptiveCardInvokeResponse> ProcessCardActionAsync(ITurnContext turnContext, ITurnState turnState, object data, CancellationToken token) => turnContext.HandleProcessVerbLogicAppAsync(data, _telemetry, _logger, _teamsManagerService, _frontgateApiService, _cardManagerService, token);
 
     // WelcomeCard.json "Welcome Back" button action handler
     private async Task<AdaptiveCardInvokeResponse> WelcomeBackCardActionAsync(ITurnContext turnContext, ITurnState turnState, object data, CancellationToken token)
