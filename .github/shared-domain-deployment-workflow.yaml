@@ -1,0 +1,72 @@
+name: Shared Domain Deployment Workflow
+
+on:
+  workflow_call:
+    secrets:
+      AZURE_TENANT_ID:
+        required: true
+        description: "Azure Tenant ID"
+      AZURE_CLIENT_ID:
+        required: true
+        description: "Azure Client ID"
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+        description: "Azure Subscription ID"
+      ACTIONS_AUTH_APP_ID:
+        required: true
+        description: "GitHub App ID"
+      ACTIONS_AUTH_APP_PRIVATE_KEY:
+        required: true
+        description: "GitHub App Private Key"
+    inputs:
+      environment:
+        type: string
+        required: true
+        description: "Environment"
+
+jobs:
+  deploy_domain:
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v6
+
+      - name: gh-app-install token
+        id: gh-app
+        uses: getsentry/action-github-app-token@v3
+        with:
+          app_id: ${{ secrets.ACTIONS_AUTH_APP_ID }}
+          private_key: ${{ secrets.ACTIONS_AUTH_APP_PRIVATE_KEY }}
+
+      - name: checkout devops-azure repo
+        uses: actions/checkout@v6
+        with:
+          path: devops-azure
+          repository: Uniphar/devops-azure
+          token: ${{ steps.gh-app.outputs.token }}
+
+      - name: azure login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
+
+      - name: initialize domain
+        uses: azure/powershell@v3
+        with:
+          inlineScript: |
+            try {
+              Import-Module .\devops-azure\src\Uniphar.DevOps.psd1 -Force -ErrorAction Stop
+              . .\domain\Initialize-UniPlatformTeamsNotificationApiDomain.ps1
+              Initialize-UniPlatformTeamsNotificationApiDomain ${{ inputs.environment }} -ErrorAction Stop
+            }
+            catch {
+              Write-Error $_
+              exit 1
+            }
+          azPSVersion: "latest"
+          errorActionPreference: "stop"
+          failOnStandardError: true
