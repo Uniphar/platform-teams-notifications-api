@@ -240,7 +240,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (foundMessage != null) return foundMessage;
         var chatPageCount = 0;
         // go 4 pages back, roughly 400 messages MAX, we can't filter 
-        while (messagesResponse?.OdataNextLink != null && chatPageCount < 4)
+        while (foundMessage == null && messagesResponse?.OdataNextLink != null && chatPageCount < 4)
         {
             chatPageCount++;
             var configuration = new RequestInformation
