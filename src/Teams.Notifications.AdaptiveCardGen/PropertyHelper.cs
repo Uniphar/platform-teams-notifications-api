@@ -30,7 +30,6 @@ internal static class PropertyHelper
         // 
         var matches = MustacheRegex.Matches(content);
         var properties = matches
-            .Cast<Match>()
             .Select(x => new { name = x.Groups["name"].Value, type = x.Groups["type"].Value })
             .DistinctByProps(x => x.name);
         return properties.ToDictionary(m => m.name, m => m.type);

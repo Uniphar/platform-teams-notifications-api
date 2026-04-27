@@ -5,6 +5,7 @@ internal static class LogicAppActionHandler
     internal static async Task<AdaptiveCardInvokeResponse> HandleProcessVerbLogicAppAsync(this ITurnContext turnContext,
         object data,
         ICustomEventTelemetryClient telemetry,
+        ILogger logger,
         ITeamsManagerService teamsManagerService,
         IFrontgateApiService frontgateApiService,
         ICardManagerService cardManagerService,
@@ -74,11 +75,20 @@ internal static class LogicAppActionHandler
                     var errorMessage = await uploadResponse.Content.ReadAsStringAsync(cancellationToken);
                     if (!string.IsNullOrWhiteSpace(errorMessage)) messageToUser = $"Failed to send file: {errorMessage}";
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     //Do nothing, we just sent the user the error message
+                    logger.LogWarning(ex, "Failed to read error message from upload response");
                 }
-
+                telemetry.TrackEvent("LogAppProcessFileUploadFailed",
+                                    new()
+                                    {
+                                        ["Team"] = teamName,
+                                        ["Channel"] = channelName,
+                                        ["FileName"] = fileName,
+                                        ["MessageId"] = messageId,
+                                        ["StatusCode"] = uploadResponse.StatusCode
+                                    });
                 return AdaptiveCardInvokeResponseFactory.BadRequest(messageToUser);
             }
             catch (Exception ex)
