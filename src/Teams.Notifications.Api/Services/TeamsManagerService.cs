@@ -224,14 +224,25 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string userAadObjectId, string jsonFileName, string uniqueId, CancellationToken token)
     {
-        var messagesResponse = await graphClient.Chats[chatId].Messages.GetAsync(cancellationToken: token);
+        var messagesResponse = await graphClient
+            .Chats[chatId]
+            .Messages
+            .GetAsync(
+                requestConfiguration =>
+                {
+                    requestConfiguration.QueryParameters.Top = 100; // default is 20, but chats can be very active so we increase it a bit
+                },
+                token);
         // no need to do anything if there is no message
         var responses = messagesResponse?.Value;
         if (responses == null) return null;
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
-        while (messagesResponse?.OdataNextLink != null)
+        var chatPageCount = 0;
+        // go 4 pages back, roughly 400 messages MAX, we can't filter 
+        while (messagesResponse?.OdataNextLink != null && chatPageCount < 4)
         {
+            chatPageCount++;
             var configuration = new RequestInformation
             {
                 HttpMethod = Method.GET,
@@ -250,12 +261,15 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<ChatMessage?> GetMessageByUniqueId(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token)
     {
-        // can't filter, default page size is 20, lets just stick with that and check each
+        // can't filter, so we will just go 400 messages back MAX
         var messagesResponse = await graphClient
             .Teams[teamId]
             .Channels[channelId]
             .Messages
-            .GetAsync(cancellationToken: token);
+            .GetAsync(requestConfiguration =>
+            {
+                requestConfiguration.QueryParameters.Top = 100; // default is 20, but chats can be very active so we increase it a bit
+            }, cancellationToken: token);
         var responses = messagesResponse
             ?.Value
             ?.Where(x => x.DeletedDateTime == null &&
@@ -267,8 +281,11 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (responses == null) return null;
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
-        while (messagesResponse?.OdataNextLink != null)
+        var channelPageCount = 0;
+// go 4 pages back, roughly 400 messages MAX, we can't filter 
+        while (messagesResponse?.OdataNextLink != null && channelPageCount < 4)
         {
+            channelPageCount++;
             var configuration = new RequestInformation
             {
                 HttpMethod = Method.GET,
