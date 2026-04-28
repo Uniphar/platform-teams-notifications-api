@@ -3,6 +3,7 @@ name: Shared Application CD Workflow
 permissions:
   id-token: write
   contents: read
+  pull-requests: read
 on:
   workflow_call:
     secrets:
@@ -48,7 +49,7 @@ jobs:
       applicationName: ${{ inputs.applicationName }}
 
   app_initialization_dev:
-    needs: [app_package]
+    needs: [ app_package ]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -61,7 +62,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_DEV }}
 
   app_deployment_dev:
-    needs: [app_package, app_initialization_dev]
+    needs: [ app_package, app_initialization_dev ]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -88,7 +89,7 @@ jobs:
       environment: dev
 
   app_initialization_test:
-    needs: [app_package, app_integration_tests_dev]
+    needs: [ app_package, app_integration_tests_dev ]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -101,7 +102,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_TEST }}
 
   app_deployment_test:
-    needs: [app_package, app_integration_tests_dev, app_initialization_test]
+    needs: [ app_package, app_integration_tests_dev, app_initialization_test ]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -129,7 +130,7 @@ jobs:
       testCategory: "Smoke"
 
   app_initialization_prod:
-    needs: [app_package, app_integration_tests_test]
+    needs: [ app_package, app_integration_tests_test ]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -142,7 +143,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_PROD }}
 
   app_deployment_prod:
-    needs: [app_package, app_integration_tests_test, app_initialization_prod]
+    needs: [ app_package, app_integration_tests_test, app_initialization_prod ]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
