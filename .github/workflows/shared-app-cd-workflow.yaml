@@ -1,9 +1,7 @@
 name: Shared Application CD Workflow
 
 permissions:
-  id-token: write
   contents: read
-  pull-requests: read
 on:
   workflow_call:
     secrets:
