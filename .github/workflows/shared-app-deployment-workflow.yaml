@@ -1,5 +1,8 @@
 name: Shared Application Deployment Workflow
 
+permissions:
+  id-token: write
+  contents: read
 on:
   workflow_call:
     secrets:
