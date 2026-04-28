@@ -92,8 +92,6 @@ module podNotesControllerExceptionDetectedAlert 'devops.alerts.scheduledqueryrul
            '''
     ActionGroupIds: [
       environment == 'prod' ? platformEngineeringApplicationsHigh.id : platformEngineeringApplicationsLow.id
-      // for now low is more than enough, we can always add high later if needed
-      //platformEngineeringApplicationsHigh.id
     ]
   }
 }
