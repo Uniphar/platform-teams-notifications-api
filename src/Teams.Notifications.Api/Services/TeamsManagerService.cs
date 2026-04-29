@@ -267,9 +267,10 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             .Channels[channelId]
             .Messages
             .GetAsync(requestConfiguration =>
-            {
-                requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
-            }, cancellationToken: token);
+                {
+                    requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
+                },
+                token);
         var responses = messagesResponse
             ?.Value
             ?.Where(x => x.DeletedDateTime == null &&
@@ -309,7 +310,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
                 .Channels[channelId]
                 .Messages[messageId]
                 .GetAsync(cancellationToken: token);
-            
+
             return chatMessage;
         }
         catch (Exception)
@@ -318,14 +319,19 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         }
     }
 
-    public async Task UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
+    public async Task<string> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         var driveId = filesFolder?.ParentReference?.DriveId;
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
-        var content = item.ItemWithPath(fileLocation).Content;
+        var content = item.ItemWithPath(fileLocation).ContentStream;
         await content.PutAsync(fileStream, cancellationToken: token);
+        var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
+        if (itemFound is { WebUrl: not null })
+            // add web=1 to open in web view, this will make it possible to edit it in browser
+            return itemFound.WebUrl + "?web=1";
+        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
     }
 
     public async Task<string> GetFileUrl(string teamId, string channelId, string fileLocation, CancellationToken token)
@@ -337,7 +343,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (item is { WebUrl: not null })
             // add web=1 to open in web view, this will make it possible to edit it in browser
             return item.WebUrl + "?web=1";
-        throw new InvalidOperationException("No web url found at the location, but should be here now");
+        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
     }
 
     public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)

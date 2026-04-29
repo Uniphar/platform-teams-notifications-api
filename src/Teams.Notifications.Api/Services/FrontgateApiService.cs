@@ -16,6 +16,6 @@ public class FrontgateApiService(IHttpClientFactory factory, IConfiguration conf
     {
         var token = await credential.GetTokenAsync(new([frontgateApiScope]), cancellationTokentoken);
         _httpClient.DefaultRequestHeaders.Authorization = new("Bearer", token.Token);
-        return await _httpClient.PostAsJsonAsync("/frontgate/Reprocess/reprocess-file-logic-app?originalBlobUrl=" + originalBlobUrl, fileInfo, cancellationToken: cancellationTokentoken);
+        return await _httpClient.PostAsJsonAsync("/frontgate/Reprocess/reprocess-file-logic-app?originalBlobUrl=" + originalBlobUrl, fileInfo, cancellationTokentoken);
     }
 }
