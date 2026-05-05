@@ -325,7 +325,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var driveId = filesFolder?.ParentReference?.DriveId;
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
-        var content = item.ItemWithPath(fileLocation).ContentStream;
+        var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
         var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
         if (itemFound is { WebUrl: not null })
