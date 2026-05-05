@@ -2,7 +2,7 @@
 
 namespace Teams.Notifications.Api.Services;
 
-public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, IConfiguration config, ICustomEventTelemetryClient telemetry) : ICardManagerService
+public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
 {
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
     private readonly string _tenantId = config["AZURE_TENANT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_TENANT_ID");
@@ -269,7 +269,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    public static async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, ITeamsManagerService teamsManagerService, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
+    public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, ITeamsManagerService teamsManagerService, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
     {
         var text = await File.ReadAllTextAsync($"./Templates/{jsonFileName}", token);
         var props = text.GetMustachePropertiesFromString();
@@ -282,9 +282,16 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             {
                 fileName = formFile.FileName;
                 fileLocation = channelName + "/error/" + formFile.FileName;
-                await using var stream = formFile.OpenReadStream();
-                await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
-                fileUrl = await teamsManagerService.GetFileUrl(teamId, channelId, fileLocation, token);
+                try
+                {
+                    await using var stream = formFile.OpenReadStream();
+                    await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
+                    fileUrl = await teamsManagerService.GetFileUrl(teamId, channelId, fileLocation, token);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error uploading file to Teams, continuing");
+                }
             }
         }
 

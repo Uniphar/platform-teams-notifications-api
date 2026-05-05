@@ -1,5 +1,7 @@
 name: Shared Application CI Workflow
 
+permissions:
+  contents: read
 on:
   workflow_call:
     inputs:
