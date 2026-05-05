@@ -87,8 +87,8 @@ module podNotesControllerExceptionDetectedAlert 'devops.alerts.scheduledqueryrul
     logAnalyticsWorkspaceId: logAnalyticsWorkspaceId
     query: '''AppExceptions
               | where AppRoleName == 'platform-teams-notification-api'
-                  and ProblemId !contains "System.OperationCanceledException"
-                  and ProblemId !contains "System.Threading.Tasks.TaskCanceledException"
+                and ExceptionType != "System.OperationCanceledException"
+                and ExceptionType != "System.Threading.Tasks.TaskCanceledException"
            '''
     ActionGroupIds: [
       environment == 'prod' ? platformEngineeringApplicationsHigh.id : platformEngineeringApplicationsLow.id
