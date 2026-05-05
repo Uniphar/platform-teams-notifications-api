@@ -6,7 +6,7 @@ internal static class LogicAppActionHandler
         object data,
         ICustomEventTelemetryClient telemetry,
         ILogger logger,
-        ITeamsManagerService teamsManagerService,
+        TeamsManagerService teamsManagerService,
         IFrontgateApiService frontgateApiService,
         ICardManagerService cardManagerService,
         CancellationToken cancellationToken

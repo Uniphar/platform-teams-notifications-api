@@ -70,11 +70,6 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
-using Microsoft.Agents.Hosting.AspNetCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Teams.Notifications.Api.Extensions;
-using Uniphar.Platform.Telemetry;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -142,7 +137,7 @@ builder.Services.AddSingleton(credentials);
 builder.Services.AddSingleton(new GraphServiceClient(credentials));
 builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
-builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
+builder.Services.AddTransient<TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddAgentAspNetAuthentication(builder.Configuration);

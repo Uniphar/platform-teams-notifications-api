@@ -1,6 +1,6 @@
 ﻿namespace Teams.Notifications.Api.Services;
 
-public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config) : ITeamsManagerService
+public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config)
 {
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
@@ -319,7 +319,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         }
     }
 
-    public async Task<string> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
+    public async Task<(bool Succes, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         var driveId = filesFolder?.ParentReference?.DriveId;
@@ -328,10 +328,11 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
         var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
-        if (itemFound is { WebUrl: not null })
+        return itemFound is { WebUrl: not null }
+            ?
             // add web=1 to open in web view, this will make it possible to edit it in browser
-            return itemFound.WebUrl + "?web=1";
-        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
+            (true, itemFound.WebUrl + "?web=1")
+            : (false, string.Empty);
     }
 
     public async Task<string> GetFileUrl(string teamId, string channelId, string fileLocation, CancellationToken token)
@@ -343,7 +344,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (item is { WebUrl: not null })
             // add web=1 to open in web view, this will make it possible to edit it in browser
             return item.WebUrl + "?web=1";
-        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
+        return string.Empty;
     }
 
     public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)

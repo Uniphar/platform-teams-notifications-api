@@ -10,7 +10,7 @@ public class CardManagerServiceTests
     private readonly Mock<IChannelAdapter> _adapterMock;
     private readonly Mock<IConfiguration> _configMock;
     private readonly Mock<ILogger<CardManagerService>> _loggerMock;
-    private readonly Mock<ITeamsManagerService> _teamsManagerServiceMock;
+    private readonly Mock<TeamsManagerService> _teamsManagerServiceMock;
     private readonly Mock<ICustomEventTelemetryClient> _telemetryMock;
 
     public CardManagerServiceTests()
@@ -132,7 +132,7 @@ public class CardManagerServiceTests
         };
         // Arrange
         var service = CreateService();
-        var result = await service.CreateCardFromTemplateAsync("LogicAppError.json", null, model, _teamsManagerServiceMock.Object, string.Empty, string.Empty, string.Empty, CancellationToken.None);
+        var result = await service.CreateCardFromTemplateAsync("LogicAppError.json", null, model, string.Empty, string.Empty, string.Empty, CancellationToken.None);
         // Assert
         Assert.IsNotEmpty(result);
         var item = AdaptiveCard.FromJson(result).Card;

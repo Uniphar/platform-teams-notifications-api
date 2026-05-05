@@ -2,7 +2,7 @@
 
 namespace Teams.Notifications.Api.Services;
 
-public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
+public sealed class CardManagerService(IChannelAdapter adapter, TeamsManagerService teamsManagerService, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
 {
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
     private readonly string _tenantId = config["AZURE_TENANT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_TENANT_ID");
@@ -104,7 +104,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 new()
                 {
                     ContentType = AdaptiveCard.ContentType,
-                    Content = await CreateCardFromTemplateAsync(jsonFileName, null, model, teamsManagerService, token: token)
+                    Content = await CreateCardFromTemplateAsync(jsonFileName, null, model, token: token)
                 }
             }
         };
@@ -164,7 +164,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 new()
                 {
                     ContentType = AdaptiveCard.ContentType,
-                    Content = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamsManagerService, teamId, channelId, channelName, token)
+                    Content = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamId, channelId, channelName, token)
                 }
             }
         };
@@ -269,7 +269,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, ITeamsManagerService teamsManagerService, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
+    public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
     {
         var text = await File.ReadAllTextAsync($"./Templates/{jsonFileName}", token);
         var props = text.GetMustachePropertiesFromString();
@@ -285,8 +285,19 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 try
                 {
                     await using var stream = formFile.OpenReadStream();
-                    await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
-                    fileUrl = await teamsManagerService.GetFileUrl(teamId, channelId, fileLocation, token);
+                    var result = await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
+                    if (!result.Succes)
+                    {
+                        telemetry.TrackEvent("FileUploadFailed",
+                            new()
+                            {
+                                ["Team"] = teamId,
+                                ["Channel"] = channelId,
+                                ["FileName"] = fileName
+                            });
+                    }
+
+                    fileLocation = result.Url;
                 }
                 catch (Exception ex)
                 {
@@ -296,7 +307,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         }
 
         // replace all props with the values
-
+        //if file prop is empty, it will just leave the value out
         foreach (var (propertyName, type) in props)
         {
             text = text.FindPropAndReplace(model,
