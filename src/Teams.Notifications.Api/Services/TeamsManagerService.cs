@@ -3,8 +3,8 @@
 public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config)
 {
     /// <summary>
-    /// SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
-    /// even though the file exists. Retry with exponential backoff until it's populated or we give up.
+    ///     SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
+    ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
     /// </summary>
     private static readonly AsyncPolicy<DriveItem?> _webUrlRetryPolicy = Policy
         .HandleResult<DriveItem?>(item => item?.WebUrl is null)
@@ -340,7 +340,8 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
         var itemFound = await _webUrlRetryPolicy.ExecuteAsync(
-            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct), token);
+            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
+            token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
     }
@@ -351,7 +352,8 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var driveId = filesFolder?.ParentReference?.DriveId;
         if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
         var item = await _webUrlRetryPolicy.ExecuteAsync(
-            ct => GetDriveItem(driveId, fileLocation, ct), token);
+            ct => GetDriveItem(driveId, fileLocation, ct),
+            token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return item is { WebUrl: not null } ? (true, item.WebUrl + "?web=1") : (false, string.Empty);
     }
