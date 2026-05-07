@@ -4,7 +4,7 @@
 [TestCategory("Integration")]
 public sealed class TeamsChannelMessagingServiceTests
 {
-    private static TeamsManagerService? _teamManager;
+    private static ITeamsManagerService? _teamManager;
 
     [ClassInitialize]
     public static void ClassInitialize(TestContext context)
@@ -27,7 +27,7 @@ public sealed class TeamsChannelMessagingServiceTests
                 KeyValuePair.Create("AZURE_CLIENT_ID", clientId)!
             ])
             .Build();
-        _teamManager = new(graph, configuration);
+        _teamManager = new TeamsManagerService(graph, configuration);
     }
 
     [TestMethod]

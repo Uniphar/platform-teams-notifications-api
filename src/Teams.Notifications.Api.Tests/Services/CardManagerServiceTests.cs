@@ -10,7 +10,7 @@ public class CardManagerServiceTests
     private readonly Mock<IChannelAdapter> _adapterMock;
     private readonly Mock<IConfiguration> _configMock;
     private readonly Mock<ILogger<CardManagerService>> _loggerMock;
-    private readonly Mock<TeamsManagerService> _teamsManagerServiceMock;
+    private readonly Mock<ITeamsManagerService> _teamsManagerServiceMock;
     private readonly Mock<ICustomEventTelemetryClient> _telemetryMock;
 
     public CardManagerServiceTests()

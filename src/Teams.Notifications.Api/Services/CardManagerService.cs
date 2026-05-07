@@ -2,7 +2,7 @@
 
 namespace Teams.Notifications.Api.Services;
 
-public sealed class CardManagerService(IChannelAdapter adapter, TeamsManagerService teamsManagerService, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
+public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
 {
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
     private readonly string _tenantId = config["AZURE_TENANT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_TENANT_ID");

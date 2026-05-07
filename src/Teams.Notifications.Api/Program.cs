@@ -137,7 +137,7 @@ builder.Services.AddSingleton(credentials);
 builder.Services.AddSingleton(new GraphServiceClient(credentials));
 builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
-builder.Services.AddTransient<TeamsManagerService>();
+builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddAgentAspNetAuthentication(builder.Configuration);

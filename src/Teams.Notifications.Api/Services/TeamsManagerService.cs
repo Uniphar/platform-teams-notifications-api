@@ -1,10 +1,7 @@
 ﻿namespace Teams.Notifications.Api.Services;
 
-public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration? config)
+public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config) : ITeamsManagerService
 {
-    // for MOQ constructor
-    protected TeamsManagerService() : this(null!, null!) { }
-
     /// <summary>
     ///     SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
     ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
@@ -13,8 +10,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration?
         .HandleResult<DriveItem?>(item => item?.WebUrl is null)
         .WaitAndRetryAsync(4, attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)));
 
-    // if config is empty (moq) then we just ignore, in release build it will always have configs
-    private readonly string _clientId = config is null ? string.Empty : config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
+    private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
 
     public async Task<string> GetTeamsAppIdAsync(CancellationToken token)
