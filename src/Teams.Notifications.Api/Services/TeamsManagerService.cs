@@ -192,14 +192,14 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         {
             ConsentedPermissionSet = new()
             {
-                ResourceSpecificPermissions = new()
-                {
+                ResourceSpecificPermissions =
+                [
                     new()
                     {
                         PermissionValue = "TeamsActivity.Send.User",
                         PermissionType = TeamsAppResourceSpecificPermissionType.Application
                     }
-                }
+                ]
             },
             AdditionalData = new Dictionary<string, object>
             {
