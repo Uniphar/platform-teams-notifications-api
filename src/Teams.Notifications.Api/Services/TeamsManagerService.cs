@@ -322,7 +322,11 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
     public async Task<(bool Succes, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        var driveId = filesFolder?.ParentReference?.DriveId;
+        if (filesFolder == null) throw new InvalidOperationException("No files folder found for the channel");
+
+        var driveId = filesFolder.ParentReference?.DriveId;
+        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
+
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
         var content = item.ItemWithPath(fileLocation).Content;
