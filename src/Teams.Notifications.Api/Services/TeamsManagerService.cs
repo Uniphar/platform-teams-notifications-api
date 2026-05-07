@@ -2,6 +2,14 @@
 
 public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config)
 {
+    /// <summary>
+    /// SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
+    /// even though the file exists. Retry with exponential backoff until it's populated or we give up.
+    /// </summary>
+    private static readonly AsyncPolicy<DriveItem?> _webUrlRetryPolicy = Policy
+        .HandleResult<DriveItem?>(item => item?.WebUrl is null)
+        .WaitAndRetryAsync(4, attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)));
+
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
 
@@ -331,7 +339,8 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
         var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
-        var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
+        var itemFound = await _webUrlRetryPolicy.ExecuteAsync(
+            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct), token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
     }
@@ -341,7 +350,8 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         var driveId = filesFolder?.ParentReference?.DriveId;
         if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
-        var item = await GetDriveItem(driveId, fileLocation, token);
+        var item = await _webUrlRetryPolicy.ExecuteAsync(
+            ct => GetDriveItem(driveId, fileLocation, ct), token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return item is { WebUrl: not null } ? (true, item.WebUrl + "?web=1") : (false, string.Empty);
     }
