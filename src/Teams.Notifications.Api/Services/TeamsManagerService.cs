@@ -230,7 +230,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         return chat?.Id;
     }
 
-    public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string userAadObjectId, string jsonFileName, string uniqueId, CancellationToken token)
+    public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string jsonFileName, string uniqueId, CancellationToken token)
     {
         var messagesResponse = await graphClient
             .Chats[chatId]

@@ -94,7 +94,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
 
         if (string.IsNullOrWhiteSpace(chatId)) throw new InvalidOperationException($"Unable to retrieve chat for user '{user}'");
-        var chatMessage = await teamsManagerService.GetChatMessageByUniqueId(chatId, userAadObjectId, jsonFileName, model.UniqueId, token);
+        var chatMessage = await teamsManagerService.GetChatMessageByUniqueId(chatId, jsonFileName, model.UniqueId, token);
 
         var activity = new Activity
         {
