@@ -297,7 +297,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                             });
                     }
 
-                    fileLocation = result.Url;
+                    // set file url
+                    fileUrl = result.Url;
                 }
                 catch (Exception ex)
                 {
