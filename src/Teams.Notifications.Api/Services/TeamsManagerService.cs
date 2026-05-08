@@ -224,14 +224,25 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string userAadObjectId, string jsonFileName, string uniqueId, CancellationToken token)
     {
-        var messagesResponse = await graphClient.Chats[chatId].Messages.GetAsync(cancellationToken: token);
+        var messagesResponse = await graphClient
+            .Chats[chatId]
+            .Messages
+            .GetAsync(
+                requestConfiguration =>
+                {
+                    requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
+                },
+                token);
         // no need to do anything if there is no message
         var responses = messagesResponse?.Value;
         if (responses == null) return null;
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
-        while (messagesResponse?.OdataNextLink != null)
+        var chatPageCount = 0;
+        // go max 4 times top* 5 will be the number of messages
+        while (foundMessage == null && messagesResponse?.OdataNextLink != null && chatPageCount < 4)
         {
+            chatPageCount++;
             var configuration = new RequestInformation
             {
                 HttpMethod = Method.GET,
@@ -250,12 +261,16 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<ChatMessage?> GetMessageByUniqueId(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token)
     {
-        // can't filter, default page size is 20, lets just stick with that and check each
+        // can't filter, so we will just go 400 messages back MAX
         var messagesResponse = await graphClient
             .Teams[teamId]
             .Channels[channelId]
             .Messages
-            .GetAsync(cancellationToken: token);
+            .GetAsync(requestConfiguration =>
+                {
+                    requestConfiguration.QueryParameters.Top = 50; // default is 20, but chats can be very active so we increase it a bit
+                },
+                token);
         var responses = messagesResponse
             ?.Value
             ?.Where(x => x.DeletedDateTime == null &&
@@ -267,8 +282,11 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (responses == null) return null;
         var foundMessage = responses.Select(s => s.GetCardThatHas(jsonFileName, uniqueId)).FirstOrDefault(x => x != null);
         if (foundMessage != null) return foundMessage;
-        while (messagesResponse?.OdataNextLink != null)
+        var channelPageCount = 0;
+        // go max 4 times top* 5 will be the number of messages 
+        while (messagesResponse?.OdataNextLink != null && channelPageCount < 4)
         {
+            channelPageCount++;
             var configuration = new RequestInformation
             {
                 HttpMethod = Method.GET,
@@ -292,7 +310,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
                 .Channels[channelId]
                 .Messages[messageId]
                 .GetAsync(cancellationToken: token);
-            
+
             return chatMessage;
         }
         catch (Exception)
@@ -301,14 +319,19 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         }
     }
 
-    public async Task UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
+    public async Task<string> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         var driveId = filesFolder?.ParentReference?.DriveId;
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
-        var content = item.ItemWithPath(fileLocation).Content;
+        var content = item.ItemWithPath(fileLocation).ContentStream;
         await content.PutAsync(fileStream, cancellationToken: token);
+        var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
+        if (itemFound is { WebUrl: not null })
+            // add web=1 to open in web view, this will make it possible to edit it in browser
+            return itemFound.WebUrl + "?web=1";
+        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
     }
 
     public async Task<string> GetFileUrl(string teamId, string channelId, string fileLocation, CancellationToken token)
@@ -320,7 +343,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (item is { WebUrl: not null })
             // add web=1 to open in web view, this will make it possible to edit it in browser
             return item.WebUrl + "?web=1";
-        throw new InvalidOperationException("No web url found at the location, but should be here now");
+        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
     }
 
     public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)
