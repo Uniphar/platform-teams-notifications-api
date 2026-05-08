@@ -327,7 +327,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         }
     }
 
-    public async Task<(bool Succes, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
+    public async Task<(bool Success, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         if (filesFolder == null) throw new InvalidOperationException("No files folder found for the channel");

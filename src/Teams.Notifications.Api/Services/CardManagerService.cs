@@ -286,7 +286,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 {
                     await using var stream = formFile.OpenReadStream();
                     var result = await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
-                    if (!result.Succes)
+                    if (!result.Success)
                     {
                         telemetry.TrackEvent("FileUploadFailed",
                             new()

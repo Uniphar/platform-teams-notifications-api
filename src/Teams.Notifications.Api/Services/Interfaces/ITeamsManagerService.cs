@@ -14,6 +14,6 @@ public interface ITeamsManagerService
     Task<string?> GetMessageIdByUniqueId(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token);
     Task<ChatMessage?> GetMessageByUniqueId(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token);
     Task<ChatMessage?> GetMessageById(string teamId, string channelId, string messageId, CancellationToken token);
-    Task<(bool Succes, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token);
+    Task<(bool Success, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token);
     Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token);
 }
