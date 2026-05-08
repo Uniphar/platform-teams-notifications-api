@@ -11,8 +11,6 @@ updates:
       time: "03:00"
       timezone: "Europe/Dublin"
     target-branch: "main"
-    allow:
-      - dependency-type: "all"
     labels:
       - "dependencies"
       - "nuget"
@@ -27,8 +25,6 @@ updates:
       time: "03:00"
       timezone: "Europe/London"
     target-branch: "main"
-    allow:
-      - dependency-type: "all"
     labels:
       - "dependencies"
       - "dotnet-sdk"
@@ -42,8 +38,6 @@ updates:
       time: "03:00"
       timezone: "Europe/Dublin"
     target-branch: "main"
-    allow:
-      - dependency-type: "all"
     groups:
       github-actions:
         patterns:
@@ -62,8 +56,6 @@ updates:
       time: "03:00"
       timezone: "Europe/Dublin"
     target-branch: "main"
-    allow:
-      - dependency-type: "all"
     labels:
       - "dependencies"
       - "docker"
