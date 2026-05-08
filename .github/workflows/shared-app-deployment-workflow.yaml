@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: azure login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -69,7 +69,7 @@ jobs:
           enable-AzPSSession: true
 
       - name: compute environment variables
-        uses: azure/powershell@v2
+        uses: azure/powershell@v3
         env:
           AKS_CLUSTER_NAME: ${{ vars[format('AKS_{0}_{1}_CLUSTER', matrix.regionShortCode, inputs.environment)] }}
         with:
@@ -105,7 +105,7 @@ jobs:
           kubelogin-version: "latest"
 
       - name: Gets K8s context
-        uses: azure/aks-set-context@v4
+        uses: azure/aks-set-context@v5
         with:
           resource-group: compute-${{ matrix.regionShortCode }}-${{ inputs.environment }}
           cluster-name: ${{ env.AKS_CLUSTER_NAME }}
@@ -113,7 +113,7 @@ jobs:
         id: k8context
 
       - name: setup helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: ACR login
         id: acrLogin
