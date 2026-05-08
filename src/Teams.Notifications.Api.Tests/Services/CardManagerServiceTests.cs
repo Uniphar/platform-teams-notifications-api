@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.Extensions.Logging;
 
 namespace Teams.Notifications.Api.Tests.Services;
 
@@ -8,6 +9,7 @@ public class CardManagerServiceTests
 {
     private readonly Mock<IChannelAdapter> _adapterMock;
     private readonly Mock<IConfiguration> _configMock;
+    private readonly Mock<ILogger<CardManagerService>> _loggerMock;
     private readonly Mock<ITeamsManagerService> _teamsManagerServiceMock;
     private readonly Mock<ICustomEventTelemetryClient> _telemetryMock;
 
@@ -19,9 +21,10 @@ public class CardManagerServiceTests
         _configMock.Setup(c => c["AZURE_CLIENT_ID"]).Returns("client-id");
         _configMock.Setup(c => c["AZURE_TENANT_ID"]).Returns("tenant-id");
         _telemetryMock = new();
+        _loggerMock = new();
     }
 
-    private CardManagerService CreateService() => new(_adapterMock.Object, _teamsManagerServiceMock.Object, _configMock.Object, _telemetryMock.Object);
+    private CardManagerService CreateService() => new(_adapterMock.Object, _teamsManagerServiceMock.Object, _configMock.Object, _loggerMock.Object, _telemetryMock.Object);
 
     [TestMethod]
     public async Task DeleteCard_DeletesCard_WhenIdIsFound()
@@ -128,7 +131,8 @@ public class CardManagerServiceTests
             UniqueId = "unique"
         };
         // Arrange
-        var result = await CardManagerService.CreateCardFromTemplateAsync("LogicAppError.json", null, model, _teamsManagerServiceMock.Object, string.Empty, string.Empty, string.Empty, CancellationToken.None);
+        var service = CreateService();
+        var result = await service.CreateCardFromTemplateAsync("LogicAppError.json", null, model, _teamsManagerServiceMock.Object, string.Empty, string.Empty, string.Empty, CancellationToken.None);
         // Assert
         Assert.IsNotEmpty(result);
         var item = AdaptiveCard.FromJson(result).Card;
