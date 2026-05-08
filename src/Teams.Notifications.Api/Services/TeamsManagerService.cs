@@ -12,23 +12,6 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
-
-    public async Task<string> GetTeamsAppIdAsync(CancellationToken token)
-    {
-        var apps = await graphClient
-            .AppCatalogs
-            .TeamsApps
-            .GetAsync(requestConfiguration =>
-                {
-                    requestConfiguration.QueryParameters.Filter = $"appDefinitions/any(a:a/authorization/clientAppId eq '{_clientId}')";
-                    requestConfiguration.QueryParameters.Expand = ["appDefinitions"];
-                },
-                token);
-
-        var teamsApp = apps?.Value?.FirstOrDefault();
-        return teamsApp?.Id ?? throw new InvalidOperationException($"Teams app with client ID {_clientId} not found in app catalog");
-    }
-
     public async Task CheckOrInstallBotIsInTeam(string teamId, CancellationToken token)
     {
         var foundAppInstallsResponse = await graphClient
@@ -346,18 +329,6 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
     }
 
-    public async Task<(bool Succes, string Url)> GetFileUrl(string teamId, string channelId, string fileLocation, CancellationToken token)
-    {
-        var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        var driveId = filesFolder?.ParentReference?.DriveId;
-        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
-        var item = await _webUrlRetryPolicy.ExecuteAsync(
-            ct => GetDriveItem(driveId, fileLocation, ct),
-            token);
-        // add web=1 to open in web view, this will make it possible to edit it in browser
-        return item is { WebUrl: not null } ? (true, item.WebUrl + "?web=1") : (false, string.Empty);
-    }
-
     public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
@@ -365,6 +336,23 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
         var item = await GetDriveItem(driveId, fileLocation, token);
         return item?.Name ?? throw new InvalidOperationException("Name not found");
+    }
+
+
+    public async Task<string> GetTeamsAppIdAsync(CancellationToken token)
+    {
+        var apps = await graphClient
+            .AppCatalogs
+            .TeamsApps
+            .GetAsync(requestConfiguration =>
+                {
+                    requestConfiguration.QueryParameters.Filter = $"appDefinitions/any(a:a/authorization/clientAppId eq '{_clientId}')";
+                    requestConfiguration.QueryParameters.Expand = ["appDefinitions"];
+                },
+                token);
+
+        var teamsApp = apps?.Value?.FirstOrDefault();
+        return teamsApp?.Id ?? throw new InvalidOperationException($"Teams app with client ID {_clientId} not found in app catalog");
     }
 
     private async Task<DriveItem?> GetDriveItem(string driveId, string fileUrl, CancellationToken cancellationToken = default)
