@@ -94,7 +94,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
 
         if (string.IsNullOrWhiteSpace(chatId)) throw new InvalidOperationException($"Unable to retrieve chat for user '{user}'");
-        var chatMessage = await teamsManagerService.GetChatMessageByUniqueId(chatId, userAadObjectId, jsonFileName, model.UniqueId, token);
+        var chatMessage = await teamsManagerService.GetChatMessageByUniqueId(chatId, jsonFileName, model.UniqueId, token);
 
         var activity = new Activity
         {
@@ -104,7 +104,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 new()
                 {
                     ContentType = AdaptiveCard.ContentType,
-                    Content = await CreateCardFromTemplateAsync(jsonFileName, null, model, teamsManagerService, token: token)
+                    Content = await CreateCardFromTemplateAsync(jsonFileName, null, model, token: token)
                 }
             }
         };
@@ -164,7 +164,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 new()
                 {
                     ContentType = AdaptiveCard.ContentType,
-                    Content = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamsManagerService, teamId, channelId, channelName, token)
+                    Content = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamId, channelId, channelName, token)
                 }
             }
         };
@@ -269,7 +269,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, ITeamsManagerService teamsManagerService, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
+    public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
     {
         var text = await File.ReadAllTextAsync($"./Templates/{jsonFileName}", token);
         var props = text.GetMustachePropertiesFromString();
@@ -285,8 +285,20 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 try
                 {
                     await using var stream = formFile.OpenReadStream();
-                    await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
-                    fileUrl = await teamsManagerService.GetFileUrl(teamId, channelId, fileLocation, token);
+                    var result = await teamsManagerService.UploadFile(teamId, channelId, fileLocation, stream, token);
+                    if (!result.Success)
+                    {
+                        telemetry.TrackEvent("FileUploadFailed",
+                            new()
+                            {
+                                ["Team"] = teamId,
+                                ["Channel"] = channelId,
+                                ["FileName"] = fileName
+                            });
+                    }
+
+                    // set file url
+                    fileUrl = result.Url;
                 }
                 catch (Exception ex)
                 {
@@ -296,7 +308,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         }
 
         // replace all props with the values
-
+        //if file prop is empty, it will just leave the value out
         foreach (var (propertyName, type) in props)
         {
             text = text.FindPropAndReplace(model,

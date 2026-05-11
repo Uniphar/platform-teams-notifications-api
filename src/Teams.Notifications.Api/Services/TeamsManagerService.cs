@@ -2,24 +2,15 @@
 
 public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config) : ITeamsManagerService
 {
+    /// <summary>
+    ///     SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
+    ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
+    /// </summary>
+    private static readonly AsyncPolicy<DriveItem?> _webUrlRetryPolicy = Policy
+        .HandleResult<DriveItem?>(item => item?.WebUrl is null)
+        .WaitAndRetryAsync(4, attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)));
+
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
-
-
-    public async Task<string> GetTeamsAppIdAsync(CancellationToken token)
-    {
-        var apps = await graphClient
-            .AppCatalogs
-            .TeamsApps
-            .GetAsync(requestConfiguration =>
-                {
-                    requestConfiguration.QueryParameters.Filter = $"appDefinitions/any(a:a/authorization/clientAppId eq '{_clientId}')";
-                    requestConfiguration.QueryParameters.Expand = ["appDefinitions"];
-                },
-                token);
-
-        var teamsApp = apps?.Value?.FirstOrDefault();
-        return teamsApp?.Id ?? throw new InvalidOperationException($"Teams app with client ID {_clientId} not found in app catalog");
-    }
 
     public async Task CheckOrInstallBotIsInTeam(string teamId, CancellationToken token)
     {
@@ -184,14 +175,14 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         {
             ConsentedPermissionSet = new()
             {
-                ResourceSpecificPermissions = new()
-                {
+                ResourceSpecificPermissions =
+                [
                     new()
                     {
                         PermissionValue = "TeamsActivity.Send.User",
                         PermissionType = TeamsAppResourceSpecificPermissionType.Application
                     }
-                }
+                ]
             },
             AdditionalData = new Dictionary<string, object>
             {
@@ -222,7 +213,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         return chat?.Id;
     }
 
-    public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string userAadObjectId, string jsonFileName, string uniqueId, CancellationToken token)
+    public async Task<ChatMessage?> GetChatMessageByUniqueId(string chatId, string jsonFileName, string uniqueId, CancellationToken token)
     {
         var messagesResponse = await graphClient
             .Chats[chatId]
@@ -319,31 +310,23 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         }
     }
 
-    public async Task<string> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
+    public async Task<(bool Success, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        var driveId = filesFolder?.ParentReference?.DriveId;
+        if (filesFolder == null) throw new InvalidOperationException("No files folder found for the channel");
+
+        var driveId = filesFolder.ParentReference?.DriveId;
+        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
+
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
-        var content = item.ItemWithPath(fileLocation).ContentStream;
+        var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
-        var itemFound = await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: token);
-        if (itemFound is { WebUrl: not null })
-            // add web=1 to open in web view, this will make it possible to edit it in browser
-            return itemFound.WebUrl + "?web=1";
-        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
-    }
-
-    public async Task<string> GetFileUrl(string teamId, string channelId, string fileLocation, CancellationToken token)
-    {
-        var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        var driveId = filesFolder?.ParentReference?.DriveId;
-        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
-        var item = await GetDriveItem(driveId, fileLocation, token);
-        if (item is { WebUrl: not null })
-            // add web=1 to open in web view, this will make it possible to edit it in browser
-            return item.WebUrl + "?web=1";
-        throw new InvalidOperationException($"Web url {fileLocation} found at the location, but should be here now");
+        var itemFound = await _webUrlRetryPolicy.ExecuteAsync(
+            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
+            token);
+        // add web=1 to open in web view, this will make it possible to edit it in browser
+        return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
     }
 
     public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)
@@ -353,6 +336,23 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
         var item = await GetDriveItem(driveId, fileLocation, token);
         return item?.Name ?? throw new InvalidOperationException("Name not found");
+    }
+
+
+    public async Task<string> GetTeamsAppIdAsync(CancellationToken token)
+    {
+        var apps = await graphClient
+            .AppCatalogs
+            .TeamsApps
+            .GetAsync(requestConfiguration =>
+                {
+                    requestConfiguration.QueryParameters.Filter = $"appDefinitions/any(a:a/authorization/clientAppId eq '{_clientId}')";
+                    requestConfiguration.QueryParameters.Expand = ["appDefinitions"];
+                },
+                token);
+
+        var teamsApp = apps?.Value?.FirstOrDefault();
+        return teamsApp?.Id ?? throw new InvalidOperationException($"Teams app with client ID {_clientId} not found in app catalog");
     }
 
     private async Task<DriveItem?> GetDriveItem(string driveId, string fileUrl, CancellationToken cancellationToken = default)
