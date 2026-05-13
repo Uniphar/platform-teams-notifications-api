@@ -45,6 +45,12 @@ function Initialize-PlatformTeamsNotificationApi {
         "ChannelMember.ReadWrite.All"
         # Read and update channels
         "ChannelSettings.ReadWrite.All"
+        # Read *all* channel messages across the entire tenant (standard + private + shared)
+        "ChannelMessage.Read.All"
+        # Send messages as the bot/app into any channel
+        "ChannelMessage.Send"
+        # Read/write all chat messages (1:1 + group chats) and send messages
+        "Chat.ReadWrite.All"
         # Add/remove members from chats (1:1 or multiparty)
         "ChatMember.ReadWrite.All"
         # Needed to get the teams app ids from the app catalog, which we have installed already
@@ -120,58 +126,41 @@ function Initialize-PlatformTeamsNotificationApi {
 }
 
 function Grant-GraphPermissions {
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
+        [parameter(Mandatory = $true)]
         [string] $ServicePrincipalDisplayName,
-
-        [Parameter(Mandatory = $true)]
+        
+        [parameter(Mandatory = $true)]
         [string[]] $Permissions
     )
-
+    
+    # Get the service principal
     $sp = Get-AzADServicePrincipal -DisplayName $ServicePrincipalDisplayName
     if (!$sp) {
         throw "Service principal '$ServicePrincipalDisplayName' not found"
     }
-
+    
+    # Get Microsoft Graph service principal
     $graphSp = Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
-    if (!$graphSp) {
-        throw "Microsoft Graph service principal not found"
-    }
-
-    # Current Graph assignments only
-    $currentAssignments = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id -All |
-        Where-Object { $_.ResourceId -eq $graphSp.Id }
-
-    foreach ($assignment in $currentAssignments) {
-        $assignedRole = $graphSp.AppRole | Where-Object { $_.Id -eq $assignment.AppRoleId }
-
-        if ($assignedRole -and $assignedRole.Value -notin $Permissions) {
-            if ($PSCmdlet.ShouldProcess($ServicePrincipalDisplayName, "Remove Graph permission '$($assignedRole.Value)'")) {
-                Write-Verbose "Removing permission: $($assignedRole.Value)"
-                Remove-MgServicePrincipalAppRoleAssignment `
-                    -ServicePrincipalId $sp.Id `
-                    -AppRoleAssignmentId $assignment.Id
-            }
-        }
-    }
-
-    # Append the desired ones that are not already assigned
+    
+    # Get the app roles from Microsoft Graph
     $appRoles = $graphSp.AppRole | Where-Object { $Permissions -contains $_.Value }
-
+    
     foreach ($appRole in $appRoles) {
-        $existingAssignment = $currentAssignments |
-            Where-Object { $_.AppRoleId -eq $appRole.Id }
-
+        # Check if permission already exists
+        $existingAssignment = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id -ErrorAction SilentlyContinue | 
+        Where-Object { $_.AppRoleId -eq $appRole.Id -and $_.ResourceId -eq $graphSp.Id }
+        
         if (!$existingAssignment) {
-            if ($PSCmdlet.ShouldProcess($ServicePrincipalDisplayName, "Add Graph permission '$($appRole.Value)'")) {
-                Write-Verbose "Granting permission: $($appRole.Value)"
-                New-MgServicePrincipalAppRoleAssignment `
-                    -ServicePrincipalId $sp.Id `
-                    -PrincipalId $sp.Id `
-                    -ResourceId $graphSp.Id `
-                    -AppRoleId $appRole.Id
-            }
+            Write-Verbose "Granting permission: $($appRole.Value)"
+            New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $sp.Id `
+                -PrincipalId $sp.Id `
+                -ResourceId $graphSp.Id `
+                -AppRoleId $appRole.Id
+        }
+        else {
+            Write-Verbose "Permission already exists: $($appRole.Value)"
         }
     }
 }
