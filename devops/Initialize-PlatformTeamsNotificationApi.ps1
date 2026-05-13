@@ -2,7 +2,7 @@ function Initialize-PlatformTeamsNotificationApi {
     [CmdletBinding(SupportsShouldProcess = $true)]
     param (
         [parameter(Mandatory = $true, Position = 0)]
-        [ValidateSet('dev', 'test', 'prod')]
+        [ValidateSet('dev')]
         [string] $Environment,
         
         [parameter(Mandatory = $true)]
@@ -45,8 +45,6 @@ function Initialize-PlatformTeamsNotificationApi {
         "ChannelMember.ReadWrite.All"
         # Read and update channels
         "ChannelSettings.ReadWrite.All"
-        # Read *all* channel messages across the entire tenant (standard + private + shared)
-        "ChannelMessage.Read.All"
         # Send messages as the bot/app into any channel
         "ChannelMessage.Send"
         # Read/write all chat messages (1:1 + group chats) and send messages
@@ -105,24 +103,24 @@ function Initialize-PlatformTeamsNotificationApi {
         # for debug purposes, give the same creds as the workload
         Grant-GraphPermissions -ServicePrincipalDisplayName $teamsBotNameDebug -Permissions $botPermissionsNeeded
     }
-    $deploymentConfig = @{
-        Mode                    = 'Incremental'
-        Name                    = $deploymentName
-        ResourceGroupName       = $ResourceGroupName
-        TemplateFile            = $botTemplate
-        endpoint                = "https://api.$Environment.uniphar.ie/platform-teams-notification-api/api/messages"
-        environment             = $Environment
-        botName                 = "platform-teams-notification-api-$Environment-bot"
-        teamsBotAppId           = $envSA.AppId
-        logAnalyticsWorkspaceId = $LogAnalyticsWorkspaceId
-        Verbose                 = ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent -eq $true)
-    }
-    # deploy the bot service, using the workload identity of the k8s cluster
-    New-AzResourceGroupDeployment @deploymentConfig
+    # $deploymentConfig = @{
+    #     Mode                    = 'Incremental'
+    #     Name                    = $deploymentName
+    #     ResourceGroupName       = $ResourceGroupName
+    #     TemplateFile            = $botTemplate
+    #     endpoint                = "https://api.$Environment.uniphar.ie/platform-teams-notification-api/api/messages"
+    #     environment             = $Environment
+    #     botName                 = "platform-teams-notification-api-$Environment-bot"
+    #     teamsBotAppId           = $envSA.AppId
+    #     logAnalyticsWorkspaceId = $LogAnalyticsWorkspaceId
+    #     Verbose                 = ($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent -eq $true)
+    # }
+    # # deploy the bot service, using the workload identity of the k8s cluster
+    # New-AzResourceGroupDeployment @deploymentConfig
 
-    # platform-teams-notifications-api needs permissions to graph stuff, since we use workload identity we can use this
-    # in the future add revoke existing if needed and use a custom workload identity for the bot
-    Grant-GraphPermissions -ServicePrincipalDisplayName $ServicePrincipalName -Permissions $botPermissionsNeeded
+    # # platform-teams-notifications-api needs permissions to graph stuff, since we use workload identity we can use this
+    # # in the future add revoke existing if needed and use a custom workload identity for the bot
+    # Grant-GraphPermissions -ServicePrincipalDisplayName $ServicePrincipalName -Permissions $botPermissionsNeeded
 }
 
 function Grant-GraphPermissions {
