@@ -45,8 +45,6 @@ function Initialize-PlatformTeamsNotificationApi {
         "ChannelMember.ReadWrite.All"
         # Read and update channels
         "ChannelSettings.ReadWrite.All"
-        # Read/write all chat messages (1:1 + group chats) and send messages
-        "Chat.ReadWrite.All"
         # Add/remove members from chats (1:1 or multiparty)
         "ChatMember.ReadWrite.All"
         # Needed to get the teams app ids from the app catalog, which we have installed already
