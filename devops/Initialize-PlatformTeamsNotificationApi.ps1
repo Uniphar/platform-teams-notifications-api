@@ -67,6 +67,7 @@ function Initialize-PlatformTeamsNotificationApi {
         "Files.ReadWrite.All"
         # Read user profiles – needed for resolving user IDs to add to teams/chats/channels
         "User.Read.All"
+        "Teamwork.Migrate.All"
     )
     $deploymentName = "deploy-$(Get-Date -Format 'yyyyMMddHHmmss')-teams-notification-api-bot"
     $token = Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com/" -AsSecureString
