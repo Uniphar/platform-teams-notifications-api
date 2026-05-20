@@ -275,7 +275,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         if (foundMessage != null) return foundMessage;
         var channelPageCount = 0;
         // go max 4 times top* 5 will be the number of messages 
-        while (messagesResponse?.OdataNextLink != null && channelPageCount < 4)
+        while (foundMessage == null && messagesResponse?.OdataNextLink != null && channelPageCount < 4)
         {
             channelPageCount++;
             var configuration = new RequestInformation
