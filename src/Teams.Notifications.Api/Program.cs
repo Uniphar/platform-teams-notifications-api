@@ -8,6 +8,7 @@ global using System.Globalization;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.IO;
 global using System.Linq;
+global using System.Net;
 global using System.Net.Http;
 global using System.Net.Http.Json;
 global using System.Reflection;
@@ -71,7 +72,7 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
-using Microsoft.Azure.Cosmos;
+global using Microsoft.Azure.Cosmos;
 
 
 const string appPathPrefix = "platform-teams-notification-api";

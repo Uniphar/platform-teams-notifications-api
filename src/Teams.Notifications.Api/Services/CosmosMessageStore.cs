@@ -1,6 +1,3 @@
-using System.Net;
-using Microsoft.Azure.Cosmos;
-
 namespace Teams.Notifications.Api.Services;
 
 public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptions> options) : ICosmosMessageStore
