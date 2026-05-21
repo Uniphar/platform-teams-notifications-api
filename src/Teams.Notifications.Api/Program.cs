@@ -72,6 +72,7 @@ global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
 using Microsoft.Azure.Cosmos;
+using CosmosMessageStore = Teams.Notifications.Api.Services.CosmosMessageStore;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -142,19 +143,18 @@ builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 
-builder.Services.Configure<CosmosMessageStore>(builder.Configuration.GetSection(CosmosMessageStore.SectionName));
+builder.Services.Configure<Teams.Notifications.Api.Extensions.CosmosMessageStore>(builder.Configuration.GetSection(Teams.Notifications.Api.Extensions.CosmosMessageStore.SectionName));
 
-builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
 builder.Services.AddSingleton(sp =>
 {
-    var endpoint = sp.GetRequiredService<IOptions<CosmosMessageStore>>().Value.Endpoint;
+    var endpoint = sp.GetRequiredService<IOptions<Teams.Notifications.Api.Extensions.CosmosMessageStore>>().Value.Endpoint;
     return new CosmosClient(endpoint, credentials,
         new()
         {
             HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)
         });
 });
-builder.Services.AddSingleton<ICosmosMessageStore, CosmosCosmosMessageStore>();
+builder.Services.AddSingleton<ICosmosMessageStore, CosmosMessageStore>();
 builder.Services.AddHealthChecks();
 builder.Services.AddAgentAspNetAuthentication(builder.Configuration);
 builder.Services.AddMemoryCache();

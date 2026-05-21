@@ -3,7 +3,7 @@ using Microsoft.Azure.Cosmos;
 
 namespace Teams.Notifications.Api.Services;
 
-public sealed class CosmosCosmosMessageStore(CosmosClient client, IOptions<CosmosMessageStore> options) : ICosmosMessageStore
+public sealed class CosmosMessageStore(CosmosClient client, IOptions<Extensions.CosmosMessageStore> options) : ICosmosMessageStore
 {
     private readonly Container _container = client.GetContainer(options.Value.DatabaseName, options.Value.ContainerName);
 
