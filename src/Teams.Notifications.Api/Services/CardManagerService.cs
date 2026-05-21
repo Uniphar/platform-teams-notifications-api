@@ -348,7 +348,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         return item.ToJson();
     }
 
-    private async Task UpsertChatStoredMessageAsync(string messageId, string chatId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
+    private Task UpsertChatStoredMessageAsync(string messageId, string chatId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
         var doc = existing ??
@@ -365,10 +365,10 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         doc.ChatId = chatId;
         doc.CardJson = cardJson;
         doc.UpdatedAt = now;
-        await cosmosMessageStore.UpsertAsync(doc, token);
+        return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
-    private async Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
+    private Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
         var doc = existing ??
@@ -387,7 +387,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         doc.ChannelId = channelId;
         doc.CardJson = cardJson;
         doc.UpdatedAt = now;
-        await cosmosMessageStore.UpsertAsync(doc, token);
+        return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
     private ConversationReference GetConversationReference(string channelId) =>
