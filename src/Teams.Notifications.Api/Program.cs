@@ -41,6 +41,7 @@ global using Microsoft.AspNetCore.OpenApi;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
 global using Microsoft.Graph.Beta;
 global using Microsoft.Graph.Beta.Models;
 global using Microsoft.Identity.Client;
@@ -70,6 +71,11 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
+using Microsoft.Agents.Hosting.AspNetCore;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Configuration;
+using Uniphar.Platform.Telemetry;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -139,6 +145,20 @@ builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
+
+builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
+
+builder.Services.AddSingleton<TokenCredential>(_ => new DefaultAzureCredential());
+builder.Services.AddSingleton(sp =>
+{
+    var connectionString = sp.GetRequiredService<IOptions<CosmosOptions>>().Value.ConnectionString;
+    return new CosmosClient(connectionString,
+        new()
+        {
+            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)
+        });
+});
+builder.Services.AddSingleton<ICosmosMessageStore, CosmosCosmosMessageStore>();
 builder.Services.AddHealthChecks();
 builder.Services.AddAgentAspNetAuthentication(builder.Configuration);
 builder.Services.AddMemoryCache();
@@ -170,8 +190,9 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer((doc, _, _) =>
     {
         foreach (var server in doc.Servers ?? [])
-            if (server.Url != null && server.Url.Contains("uniphar.ie"))
-                server.Url = server.Url.Replace("http://", "https://");
+        {
+            if (server.Url != null && server.Url.Contains("uniphar.ie")) server.Url = server.Url.Replace("http://", "https://");
+        }
 
         return Task.CompletedTask;
     });
@@ -192,6 +213,7 @@ builder.RegisterOpenTelemetry(appPathPrefix).Build();
 
 
 var app = builder.Build();
+await app.Services.GetRequiredService<ICosmosMessageStore>().EnsureContainerIsProvisioned();
 app.MapHealthChecks("/health");
 app.MapOpenApi(appPathPrefix + "/swagger/{documentName}/openapi.json");
 app.UseSwaggerUI(c =>
