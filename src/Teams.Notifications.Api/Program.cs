@@ -72,7 +72,6 @@ global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
 using Microsoft.Azure.Cosmos;
-using CosmosMessageStore = Teams.Notifications.Api.Services.CosmosMessageStore;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -143,12 +142,12 @@ builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 
-builder.Services.Configure<Teams.Notifications.Api.Extensions.CosmosMessageStore>(builder.Configuration.GetSection(Teams.Notifications.Api.Extensions.CosmosMessageStore.SectionName));
+builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
 
 builder.Services.AddSingleton(sp =>
 {
-    var endpoint = sp.GetRequiredService<IOptions<Teams.Notifications.Api.Extensions.CosmosMessageStore>>().Value.Endpoint;
-    return new CosmosClient(endpoint, credentials,
+    var connectionString = sp.GetRequiredService<IOptions<CosmosOptions>>().Value.ConnectionString;
+    return new CosmosClient(connectionString,
         new()
         {
             HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)

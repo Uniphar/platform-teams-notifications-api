@@ -6,8 +6,7 @@ public static class IEnumerableExtensions
     {
         HashSet<TKey> seenKeys = [];
         foreach (var element in source)
-        {
-            if (seenKeys.Add(keySelector(element))) yield return element;
-        }
+            if (seenKeys.Add(keySelector(element)))
+                yield return element;
     }
 }

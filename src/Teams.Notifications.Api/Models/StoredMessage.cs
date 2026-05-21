@@ -1,4 +1,3 @@
-
 namespace Teams.Notifications.Api.Models;
 
 public sealed class StoredMessage
