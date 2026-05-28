@@ -8,6 +8,7 @@ global using System.Globalization;
 global using System.IdentityModel.Tokens.Jwt;
 global using System.IO;
 global using System.Linq;
+global using System.Net;
 global using System.Net.Http;
 global using System.Net.Http.Json;
 global using System.Reflection;
@@ -41,6 +42,7 @@ global using Microsoft.AspNetCore.OpenApi;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
 global using Microsoft.Graph.Beta;
 global using Microsoft.Graph.Beta.Models;
 global using Microsoft.Identity.Client;
@@ -70,6 +72,7 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
+global using Microsoft.Azure.Cosmos;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -139,6 +142,19 @@ builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
+
+builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
+
+builder.Services.AddSingleton(sp =>
+{
+    var connectionString = sp.GetRequiredService<IOptions<CosmosOptions>>().Value.ConnectionString;
+    return new CosmosClient(connectionString,
+        new()
+        {
+            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)
+        });
+});
+builder.Services.AddSingleton<ICosmosMessageStore, CosmosMessageStore>();
 builder.Services.AddHealthChecks();
 builder.Services.AddAgentAspNetAuthentication(builder.Configuration);
 builder.Services.AddMemoryCache();
@@ -192,6 +208,7 @@ builder.RegisterOpenTelemetry(appPathPrefix).Build();
 
 
 var app = builder.Build();
+await app.Services.GetRequiredService<ICosmosMessageStore>().EnsureContainerIsProvisioned();
 app.MapHealthChecks("/health");
 app.MapOpenApi(appPathPrefix + "/swagger/{documentName}/openapi.json");
 app.UseSwaggerUI(c =>
