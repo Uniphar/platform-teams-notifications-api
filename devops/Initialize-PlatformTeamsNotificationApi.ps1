@@ -20,12 +20,14 @@ function Initialize-PlatformTeamsNotificationApi {
 
     Select-AzSubscription -SubscriptionId $SubscriptionId
 
-    New-AzResourceGroupDeployment `
-        -Mode Incremental `
-        -Name $deploymentName `
-        -ResourceGroupName $ResourceGroupName `
-        -TemplateFile $alertsTemplate `
-        -environment $Environment `
-        -logAnalyticsWorkspaceId $LogAnalyticsWorkspaceId `
-        -Verbose:($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent -eq $true)
+    if ($PSCmdlet.ShouldProcess("Resource group '$ResourceGroupName'", "Deploy alert rules")) {
+        New-AzResourceGroupDeployment `
+            -Mode Incremental `
+            -Name $deploymentName `
+            -ResourceGroupName $ResourceGroupName `
+            -TemplateFile $alertsTemplate `
+            -environment $Environment `
+            -logAnalyticsWorkspaceId $LogAnalyticsWorkspaceId `
+            -Verbose:($PSCmdlet.MyInvocation.BoundParameters["Verbose"].IsPresent -eq $true)
+    }
 }

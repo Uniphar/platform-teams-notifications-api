@@ -21,7 +21,7 @@ The API communicates with Teams via an Azure Bot Service. The bot's identity is 
 
 ### 1a. Deploy the Bot Service
 
-The `devops/bot.bicep` template provisions the bot service, the Teams channel, diagnostic settings, and alert rules in a single deployment. Run the deployment with the workload identity's App ID:
+The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are deployed separately via `devops/alerts.bicep` (see step 5).
 
 ```bash
 ENVIRONMENT=dev          # dev | test | prod
@@ -48,7 +48,7 @@ az deployment group create \
     logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
 ```
 
-> **Note:** The `bot.bicep` template assumes action groups named `platform-engineering-applications-low` and `platform-engineering-applications-high` exist in a resource group called `observability` within the same subscription. These must be in place before deploying.
+> **Note:** The `alerts.bicep` template assumes action groups named `platform-engineering-applications-low` and `platform-engineering-applications-high` exist in a resource group called `observability` within the same subscription. These must be in place before deploying alert rules.
 
 ---
 
@@ -107,7 +107,8 @@ $permissions = @(
     "User.Read.All"
 )
 
-$sp      = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
+$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
+if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
 $graphSp = Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $roles   = $graphSp.AppRole | Where-Object { $permissions -contains $_.Value }
 
