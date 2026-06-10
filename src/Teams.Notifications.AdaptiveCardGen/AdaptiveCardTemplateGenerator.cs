@@ -89,9 +89,11 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
     private static string GenerateModel(string modelName, Dictionary<string, string> props)
     {
         // filter out all the Files, this is a separate controller
+        // filter out UniqueId since it is already defined in BaseTemplateModel
         props = props
             .Where(x => x.Value != "file")
             .Where(x => x.Value != "file?")
+            .Where(x => !x.Key.Equals("UniqueId", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(x => x.Key, x => x.Value);
 
 

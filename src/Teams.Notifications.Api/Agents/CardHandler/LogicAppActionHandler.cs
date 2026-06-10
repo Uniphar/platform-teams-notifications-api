@@ -9,6 +9,7 @@ internal static class LogicAppActionHandler
         ITeamsManagerService teamsManagerService,
         IFrontgateApiService frontgateApiService,
         ICardManagerService cardManagerService,
+        IServiceNowApiService serviceNowApiService,
         CancellationToken cancellationToken
     )
     {
@@ -56,6 +57,21 @@ internal static class LogicAppActionHandler
                 if (uploadResponse.IsSuccessStatusCode)
                 {
                     await cardManagerService.RemoveActionsFromCardAsync(teamId, channelId, messageId, ["Process"], cancellationToken);
+
+                    // Resolve the ServiceNow incident — best-effort, do not fail the card action if SN is unavailable
+                    if (!string.IsNullOrWhiteSpace(model.PostUniqueId))
+                    {
+                        try
+                        {
+                            await serviceNowApiService.ResolveIncidentAsync(model.PostUniqueId, cancellationToken);
+                            telemetry.TrackEvent("ServiceNowIncidentResolved", new() { ["UniqueId"] = model.PostUniqueId });
+                        }
+                        catch (Exception snEx)
+                        {
+                            logger.LogWarning(snEx, "Failed to resolve ServiceNow incident for UniqueId {UniqueId}", model.PostUniqueId);
+                            telemetry.TrackEvent("ServiceNowResolveIncidentFailed", new() { ["UniqueId"] = model.PostUniqueId, ["Error"] = snEx.Message });
+                        }
+                    }
 
                     telemetry.TrackEvent("ReprocessFileSuccess",
                         new()

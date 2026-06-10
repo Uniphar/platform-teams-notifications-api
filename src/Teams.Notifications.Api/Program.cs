@@ -39,6 +39,7 @@ global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApplicationModels;
 global using Microsoft.AspNetCore.OpenApi;
+global using Microsoft.Azure.Cosmos;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
@@ -72,7 +73,6 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
-global using Microsoft.Azure.Cosmos;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -142,6 +142,12 @@ builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
+builder
+    .Services
+    .AddHttpClient("service-now-api", client => client.BaseAddress = apiUrl)
+    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(jitterRandomizer.Next(0, 100))))
+    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+builder.Services.AddTransient<IServiceNowApiService, ServiceNowApiService>();
 
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
 
