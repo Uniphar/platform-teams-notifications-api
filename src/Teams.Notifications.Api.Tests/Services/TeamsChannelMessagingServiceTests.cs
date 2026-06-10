@@ -27,7 +27,8 @@ public sealed class TeamsChannelMessagingServiceTests
                 KeyValuePair.Create("AZURE_CLIENT_ID", clientId)!
             ])
             .Build();
-        _teamManager = new TeamsManagerService(graph, configuration);
+        var loggerMock= new Mock<ILogger<TeamsManagerService>>();
+        _teamManager = new TeamsManagerService(graph, configuration, loggerMock.Object);
     }
 
     [TestMethod]

@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using Microsoft.Extensions.Logging;
-
 namespace Teams.Notifications.Api.Tests.Services;
 
 [TestClass]

@@ -1,12 +1,14 @@
 // Global using directives
 
 global using System.Reflection;
+global using System.Security.Claims;
 global using AdaptiveCards;
 global using Azure.Core;
 global using Azure.Identity;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Core.Models;
 global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Logging;
 global using Microsoft.Graph.Beta;
 global using Microsoft.Graph.Beta.Models;
 global using Microsoft.VisualStudio.TestTools.UnitTesting;
