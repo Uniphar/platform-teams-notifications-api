@@ -26,14 +26,21 @@ internal static class LogicAppActionHandler
 
                 if (channel?.Name == null)
                 {
+                    var errorMsg = "Something went wrong reprocessing the file: channel name is null or missing";
+                    logger.LogError(errorMsg);
                     telemetry.TrackEvent("LogAppProcessFile_NoChannelName");
-                    return AdaptiveCardInvokeResponseFactory.BadRequest("Something went wrong reprocessing the file");
+                    throw new InvalidOperationException(errorMsg);
                 }
 
                 var teamId = teamDetails.AadGroupId;
                 var channelName = channel.Name;
 
-                if (string.IsNullOrWhiteSpace(teamId) || string.IsNullOrWhiteSpace(channelName)) throw new InvalidOperationException("Team or channelName is missing from the context.");
+                if (string.IsNullOrWhiteSpace(teamId) || string.IsNullOrWhiteSpace(channelName))
+                {
+                    var errorMsg = "Team or channelName is missing from the context.";
+                    logger.LogError(errorMsg);
+                    throw new InvalidOperationException(errorMsg);
+                }
 
                 var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, cancellationToken);
                 var fileName = await teamsManagerService.GetFileNameAsync(teamId, channelId, model.PostFileLocation ?? string.Empty, cancellationToken);
@@ -85,18 +92,19 @@ internal static class LogicAppActionHandler
                     return AdaptiveCardInvokeResponseFactory.Message(model.PostSuccessMessage ?? "Success");
                 }
 
-                var messageToUser = "Something went wrong sending file";
+                var errorMessage = "Something went wrong sending file";
                 try
                 {
-                    var errorMessage = await uploadResponse.Content.ReadAsStringAsync(cancellationToken);
-                    if (!string.IsNullOrWhiteSpace(errorMessage)) messageToUser = $"Failed to send file: {errorMessage}";
+                    var responseContent = await uploadResponse.Content.ReadAsStringAsync(cancellationToken);
+                    if (!string.IsNullOrWhiteSpace(responseContent)) errorMessage = $"Failed to send file: {responseContent}";
                 }
                 catch (Exception ex)
                 {
-                    //Do nothing, we just sent the user the error message
                     logger.LogWarning(ex, "Failed to read error message from upload response");
                 }
 
+                var uploadFailureMsg = $"File upload failed with status code {uploadResponse.StatusCode}: {errorMessage}";
+                logger.LogError(uploadFailureMsg);
                 telemetry.TrackEvent("LogAppProcessFileUploadFailed",
                     new()
                     {
@@ -104,16 +112,19 @@ internal static class LogicAppActionHandler
                         ["Channel"] = channelName,
                         ["FileName"] = fileName,
                         ["MessageId"] = messageId,
-                        ["StatusCode"] = uploadResponse.StatusCode
+                        ["StatusCode"] = uploadResponse.StatusCode,
+                        ["ErrorMessage"] = errorMessage
                     });
-                return AdaptiveCardInvokeResponseFactory.BadRequest(messageToUser);
+                throw new InvalidOperationException(uploadFailureMsg);
             }
             catch (Exception ex)
             {
+                logger.LogError(ex, "Error processing LogicApp file action");
                 telemetry.TrackEvent("LogAppProcessFileError",
                     new()
                     {
-                        ["Error"] = ex.Message
+                        ["Error"] = ex.Message,
+                        ["ExceptionType"] = ex.GetType().Name
                     });
                 throw;
             }

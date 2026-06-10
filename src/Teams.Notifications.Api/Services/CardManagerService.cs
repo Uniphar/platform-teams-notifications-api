@@ -15,7 +15,12 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
         var conversationReference = GetConversationReference(channelId);
         var stored = await cosmosMessageStore.FindByChannelAsync(teamId, channelId, jsonFileName, uniqueId, token);
-        if (stored is null) throw new InvalidOperationException($"Card with unique ID '{uniqueId}' not found in team '{teamName}', channel '{channelName}'");
+        if (stored is null)
+        {
+            var errorMsg = $"Card with unique ID '{uniqueId}' not found in team '{teamName}', channel '{channelName}'";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
         conversationReference.ActivityId = stored.Id;
         await adapter.ContinueConversationAsync(AgentClaims.CreateIdentity(_clientId),
             conversationReference,
@@ -59,9 +64,19 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var stopwatch = Stopwatch.StartNew();
         var userAadObjectId = await teamsManagerService.GetUserAadObjectIdAsync(user, token);
         var installedAppId = await teamsManagerService.GetOrInstallChatAppIdAsync(userAadObjectId, token);
-        if (string.IsNullOrWhiteSpace(installedAppId)) throw new InvalidOperationException($"Unable to install or retrieve chat app for user '{user}'");
+        if (string.IsNullOrWhiteSpace(installedAppId))
+        {
+            var errorMsg = $"Unable to install or retrieve chat app for user '{user}'";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
         var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
-        if (string.IsNullOrWhiteSpace(chatId)) throw new InvalidOperationException($"Unable to retrieve chat for user '{user}'");
+        if (string.IsNullOrWhiteSpace(chatId))
+        {
+            var errorMsg = $"Unable to retrieve chat for user '{user}'";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
         var conversationReference = GetConversationReference(chatId);
         await adapter.ContinueConversationAsync(AgentClaims.CreateIdentity(_clientId),
             conversationReference,
@@ -87,11 +102,21 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var installedAppId = await teamsManagerService.GetOrInstallChatAppIdAsync(userAadObjectId, token);
 
 
-        if (string.IsNullOrWhiteSpace(installedAppId)) throw new InvalidOperationException($"Unable to install or retrieve chat app for user '{user}'");
+        if (string.IsNullOrWhiteSpace(installedAppId))
+        {
+            var errorMsg = $"Unable to install or retrieve chat app for user '{user}'";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
 
         var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
 
-        if (string.IsNullOrWhiteSpace(chatId)) throw new InvalidOperationException($"Unable to retrieve chat for user '{user}'");
+        if (string.IsNullOrWhiteSpace(chatId))
+        {
+            var errorMsg = $"Unable to retrieve chat for user '{user}'";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
         var stored = await cosmosMessageStore.FindByChatAsync(chatId, jsonFileName, model.UniqueId, token);
 
         var cardJson = await CreateCardFromTemplateAsync(jsonFileName, null, model, token: token);
@@ -235,8 +260,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var card = AdaptiveCard.FromJson(cardJson).Card;
         // remove all actions that match the verbs
         foreach (var actionVerb in actionsToRemove)
-        foreach (var adaptiveAction in card.Actions.Where(a => a is AdaptiveExecuteAction exe && exe.Verb == actionVerb).ToList())
-            card.Actions.Remove(adaptiveAction);
+            foreach (var adaptiveAction in card.Actions.Where(a => a is AdaptiveExecuteAction exe && exe.Verb == actionVerb).ToList())
+                card.Actions.Remove(adaptiveAction);
 
         var updatedCardJson = card.ToJson();
         var activity = new Activity
