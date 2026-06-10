@@ -9,9 +9,9 @@ public class CardActionAgent : AgentApplication
     private readonly ICardManagerService _cardManagerService;
     private readonly IFrontgateApiService _frontgateApiService;
     private readonly ILogger<CardActionAgent> _logger;
+    private readonly IServiceNowApiService _serviceNowApiService;
     private readonly ITeamsManagerService _teamsManagerService;
     private readonly ICustomEventTelemetryClient _telemetry;
-    private readonly IServiceNowApiService _serviceNowApiService;
 
     public CardActionAgent(AgentApplicationOptions options,
         ITeamsManagerService teamsManagerService,
