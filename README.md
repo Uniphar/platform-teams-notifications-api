@@ -11,6 +11,10 @@ This is the first iteration of the Notifications API. In this iteration, the API
 4. Retrieve the file from a blob storage location.
 5. Display the file in Teams when the button is clicked.
 
+## Environment Setup
+
+If you need to provision the Azure infrastructure manually (bot service, Graph API permissions, Teams app manifest, alert rules), see the [Environment Setup Guide](docs/environment-setup.md).
+
 ## local setup
 
 Local setup will use the debug bot to communicate making it possible to locally debug.
@@ -39,7 +43,7 @@ You will have to change the following:
 
 1. Manifest.id (take that from the manifest that is created when you create the app)
 2. The bots.botId/webApplicationInfo.id and resource, leave the `api://botid-` part for the resource, just do a guid replace, the ID should be the AppId of the app, this is equal to the `Microsoft App ID` in the `Configuration` of your bot that is under `Bot services`
-   1. `Initialize-PlatformTeamsNotificationApi.ps1` will auto create the right permissions, this is needed to install the bot, read messages that are not sent to the bot etc
+   1. The required Graph API permissions must be granted manually — see the [Environment Setup Guide](docs/environment-setup.md#2-microsoft-graph-api-permissions) for the full list and the PowerShell snippet to assign them.
 3. You might want to change the names, logo's etc, we use Uniphar since that is what we use it for
 
 The pending apps you can find in `https://admin.teams.microsoft.com/policies/manage-apps` with pim you can approve these, to view, choose app type= custom app or search for the name, it will take a few hours to propagate, if you open teams in the browser it tends to be there quicker.
