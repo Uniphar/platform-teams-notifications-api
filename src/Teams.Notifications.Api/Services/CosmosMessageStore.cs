@@ -4,9 +4,9 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
 {
     private readonly Container _container = client.GetContainer(options.Value.DatabaseName, options.Value.ContainerName);
 
-    public async Task<StoredMessage?> FindByChatAsync(string chatId, string jsonFileName, string uniqueId, CancellationToken token) => await QuerySingleAsync(StoredMessage.ChatPartition(chatId), jsonFileName, uniqueId, token);
+    public Task<StoredMessage?> FindByChatAsync(string chatId, string jsonFileName, string uniqueId, CancellationToken token) => QuerySingleAsync(StoredMessage.ChatPartition(chatId), jsonFileName, uniqueId, token);
 
-    public async Task<StoredMessage?> FindByChannelAsync(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token) => await QuerySingleAsync(StoredMessage.ChannelPartition(teamId, channelId), jsonFileName, uniqueId, token);
+    public Task<StoredMessage?> FindByChannelAsync(string teamId, string channelId, string jsonFileName, string uniqueId, CancellationToken token) => QuerySingleAsync(StoredMessage.ChannelPartition(teamId, channelId), jsonFileName, uniqueId, token);
 
     public async Task<StoredMessage?> FindByChannelMessageIdAsync(string teamId, string channelId, string messageId, CancellationToken token)
     {

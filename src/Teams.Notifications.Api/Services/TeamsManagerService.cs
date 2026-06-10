@@ -114,6 +114,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         return teamId ?? throw new InvalidOperationException($"Team with name {teamName} does not exist");
     }
 
@@ -135,6 +136,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         return channelId ?? throw new InvalidOperationException($"Channel with name {channelName} does not exist");
     }
 
@@ -167,6 +169,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         return user.Id;
     }
 
@@ -268,6 +271,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         var item = await GetDriveItem(driveId, fileLocation, token);
         if (item?.Name == null)
         {
@@ -275,6 +279,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         return item.Name;
     }
 
@@ -298,6 +303,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         return teamsApp.Id;
     }
 

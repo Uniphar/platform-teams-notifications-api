@@ -73,11 +73,6 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
-using Microsoft.Agents.Hosting.AspNetCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Teams.Notifications.Api.Extensions;
-using Uniphar.Platform.Telemetry;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -197,9 +192,8 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer((doc, _, _) =>
     {
         foreach (var server in doc.Servers ?? [])
-        {
-            if (server.Url != null && server.Url.Contains("uniphar.ie")) server.Url = server.Url.Replace("http://", "https://");
-        }
+            if (server.Url != null && server.Url.Contains("uniphar.ie"))
+                server.Url = server.Url.Replace("http://", "https://");
 
         return Task.CompletedTask;
     });

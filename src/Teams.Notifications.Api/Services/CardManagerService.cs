@@ -21,6 +21,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         conversationReference.ActivityId = stored.Id;
         await adapter.ContinueConversationAsync(AgentClaims.CreateIdentity(_clientId),
             conversationReference,
@@ -70,6 +71,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
         if (string.IsNullOrWhiteSpace(chatId))
         {
@@ -77,6 +79,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         var conversationReference = GetConversationReference(chatId);
         await adapter.ContinueConversationAsync(AgentClaims.CreateIdentity(_clientId),
             conversationReference,
@@ -117,6 +120,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
         var stored = await cosmosMessageStore.FindByChatAsync(chatId, jsonFileName, model.UniqueId, token);
 
         var cardJson = await CreateCardFromTemplateAsync(jsonFileName, null, model, token: token);
@@ -260,8 +264,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var card = AdaptiveCard.FromJson(cardJson).Card;
         // remove all actions that match the verbs
         foreach (var actionVerb in actionsToRemove)
-            foreach (var adaptiveAction in card.Actions.Where(a => a is AdaptiveExecuteAction exe && exe.Verb == actionVerb).ToList())
-                card.Actions.Remove(adaptiveAction);
+        foreach (var adaptiveAction in card.Actions.Where(a => a is AdaptiveExecuteAction exe && exe.Verb == actionVerb).ToList())
+            card.Actions.Remove(adaptiveAction);
 
         var updatedCardJson = card.ToJson();
         var activity = new Activity
@@ -373,7 +377,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         return item.ToJson();
     }
 
-    private async Task UpsertChatStoredMessageAsync(string messageId, string chatId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
+    private Task UpsertChatStoredMessageAsync(string messageId, string chatId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
         var doc = existing ??
@@ -390,10 +394,10 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         doc.ChatId = chatId;
         doc.CardJson = cardJson;
         doc.UpdatedAt = now;
-        await cosmosMessageStore.UpsertAsync(doc, token);
+        return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
-    private async Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
+    private Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
         var doc = existing ??
@@ -412,7 +416,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         doc.ChannelId = channelId;
         doc.CardJson = cardJson;
         doc.UpdatedAt = now;
-        await cosmosMessageStore.UpsertAsync(doc, token);
+        return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
     private ConversationReference GetConversationReference(string channelId) =>
