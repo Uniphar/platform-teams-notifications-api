@@ -157,7 +157,8 @@ builder.Services.AddSingleton(sp =>
     return new CosmosClient(connectionString,
         new()
         {
-            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)
+            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false),
+            SerializerOptions = new() { Indented = true, IgnoreNullValues = true, PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase }
         });
 });
 builder.Services.AddSingleton<ICosmosMessageStore, CosmosMessageStore>();
