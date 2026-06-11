@@ -145,7 +145,7 @@ builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 builder
     .Services
     .AddHttpClient("service-now-api", client => client.BaseAddress = apiUrl)
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(jitterRandomizer.Next(0, 100))))
+    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 100))))
     .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 builder.Services.AddTransient<IServiceNowApiService, ServiceNowApiService>();
 
