@@ -26,7 +26,13 @@ jobs:
       - name: Expose app name into env
         run: |
           echo "APPLICATION_NAME=${{ inputs.applicationName }}" >> $GITHUB_ENV
+      - name: Install nswag tool
+        run: dotnet tool install NSwag.ConsoleCore --global
 
+      - name: Run NSwag to generate API clients
+        working-directory: ./src/${{ inputs.applicationFolder }}.Tests
+        run: |
+          nswag run teams-api.nswag
       - name: Run unit tests
         working-directory: ./src/${{ env.APPLICATION_NAME }}.Tests
         run: |
