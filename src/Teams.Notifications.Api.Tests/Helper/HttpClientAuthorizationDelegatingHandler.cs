@@ -8,8 +8,7 @@ internal sealed class HttpClientAuthorizationDelegatingHandler : DelegatingHandl
     public HttpClientAuthorizationDelegatingHandler(TokenCredential credential, IConfiguration configuration)
     {
         _credential = credential;
-        var apiClientId = configuration["platform-teams-notification-api-client-id"]
-            ?? throw new InvalidOperationException("platform-teams-notification-api-client-id is required");
+        var apiClientId = configuration["platform-teams-notification-api-client-id"] ?? throw new InvalidOperationException("platform-teams-notification-api-client-id is required");
         _scope = $"api://platform-teams-notification-api/{apiClientId}/.default";
     }
 

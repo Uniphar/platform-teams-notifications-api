@@ -2,7 +2,6 @@ namespace Teams.Notifications.Api.Services;
 
 public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptions> options) : ICosmosMessageStore
 {
-
     private readonly Container _container = client.GetContainer(options.Value.DatabaseName, options.Value.ContainerName);
 
     public async Task<StoredMessage?> FindByChatAsync(string chatId, string jsonFileName, string uniqueId, CancellationToken token) => await QuerySingleAsync(jsonFileName, uniqueId, token);
@@ -66,10 +65,7 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
 
     private static void ValidateForUpsert(StoredMessage message)
     {
-        if (string.IsNullOrWhiteSpace(message.Id))
-        {
-            throw new InvalidOperationException("Cannot upsert StoredMessage with an empty id.");
-        }
+        if (string.IsNullOrWhiteSpace(message.Id)) throw new InvalidOperationException("Cannot upsert StoredMessage with an empty id.");
 
         if (message.Id.Any(c => c is '/' or '\\' or '?' or '#' || char.IsControl(c)))
         {

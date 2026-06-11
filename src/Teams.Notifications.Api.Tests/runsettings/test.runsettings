@@ -1,30 +1,31 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+
 <RunSettings>
-	<DataCollectionRunSettings>
-		<DataCollectors>
-			<DataCollector friendlyName="XPlat code coverage">
-				<Configuration>
-					<Format>json,cobertura</Format>
-					<ExcludeByFile>**/Migrations/*.cs,**/Connected Services/**/*.cs,</ExcludeByFile>
-					<Exclude>[coverlet.*.tests?]*,[*]Coverlet.Core*</Exclude>
-					<ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
-				</Configuration>
-			</DataCollector>
-		</DataCollectors>
-	</DataCollectionRunSettings>
-	<TestRunParameters>
-		<Parameter name="Environment" value="test" />
-		<Parameter name="AZURE_ENTRA_EXTERNAL_TENANT_ID" value="91550823-f8b0-4d7c-b7f4-e6d8efc88d71" />
-	</TestRunParameters>
-	<RunConfiguration>
-		<CollectSourceInformation>true</CollectSourceInformation>
-		<MaxCpuCount>0</MaxCpuCount>
-		<ResultsDirectory>../../../tests</ResultsDirectory>
-	</RunConfiguration>
-	<MSTest>
-		<Parallelize>
-			<Workers>0</Workers>
-			<Scope>MethodLevel</Scope>
-		</Parallelize>
-	</MSTest>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>json,cobertura</Format>
+          <ExcludeByFile>**/Migrations/*.cs,**/Connected Services/**/*.cs,</ExcludeByFile>
+          <Exclude>[coverlet.*.tests?]*,[*]Coverlet.Core*</Exclude>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+  <TestRunParameters>
+    <Parameter name="Environment" value="test" />
+    <Parameter name="AZURE_ENTRA_EXTERNAL_TENANT_ID" value="91550823-f8b0-4d7c-b7f4-e6d8efc88d71" />
+  </TestRunParameters>
+  <RunConfiguration>
+    <CollectSourceInformation>true</CollectSourceInformation>
+    <MaxCpuCount>0</MaxCpuCount>
+    <ResultsDirectory>../../../tests</ResultsDirectory>
+  </RunConfiguration>
+  <MSTest>
+    <Parallelize>
+      <Workers>0</Workers>
+      <Scope>MethodLevel</Scope>
+    </Parallelize>
+  </MSTest>
 </RunSettings>

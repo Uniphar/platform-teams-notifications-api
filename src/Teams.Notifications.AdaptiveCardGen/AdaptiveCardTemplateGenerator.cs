@@ -147,23 +147,18 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
     private static IEnumerable<ExecuteActionTemplate> GetExecuteActions(string content)
     {
         using var doc = JsonDocument.Parse(content);
-        if (!doc.RootElement.TryGetProperty("actions", out var actions) || actions.ValueKind != JsonValueKind.Array)
-            yield break;
+        if (!doc.RootElement.TryGetProperty("actions", out var actions) || actions.ValueKind != JsonValueKind.Array) yield break;
 
         foreach (var action in actions.EnumerateArray())
         {
-            if (!action.TryGetProperty("type", out var typeElement) || !string.Equals(typeElement.GetString(), "Action.Execute", StringComparison.Ordinal))
-                continue;
+            if (!action.TryGetProperty("type", out var typeElement) || !string.Equals(typeElement.GetString(), "Action.Execute", StringComparison.Ordinal)) continue;
 
-            if (!action.TryGetProperty("verb", out var verbElement))
-                continue;
+            if (!action.TryGetProperty("verb", out var verbElement)) continue;
 
             var verb = verbElement.GetString();
-            if (string.IsNullOrWhiteSpace(verb))
-                continue;
+            if (string.IsNullOrWhiteSpace(verb)) continue;
 
-            if (!action.TryGetProperty("data", out var dataElement) || dataElement.ValueKind != JsonValueKind.Object)
-                continue;
+            if (!action.TryGetProperty("data", out var dataElement) || dataElement.ValueKind != JsonValueKind.Object) continue;
 
             yield return new(verb, Regex.Replace(dataElement.GetRawText(), @"\r\n?|\n", string.Empty));
         }
