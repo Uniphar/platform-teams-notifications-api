@@ -29,7 +29,6 @@ public class CardManagerServiceTests
         new()
         {
             Id = messageId,
-            PartitionKey = StoredMessage.ChannelPartition(teamId, channelId),
             TeamId = teamId,
             ChannelId = channelId,
             JsonFileName = jsonFileName,

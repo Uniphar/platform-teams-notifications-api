@@ -33,7 +33,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     try
                     {
                         await adapter.DeleteActivityAsync(turnContext, conversationReference, cancellationToken);
-                        await cosmosMessageStore.DeleteAsync(stored.PartitionKey, stored.Id, cancellationToken);
+                        await cosmosMessageStore.DeleteAsync(stored.Id, cancellationToken);
 
                         telemetry.TrackEvent("ChannelDeleteMessage",
                             new()
@@ -496,7 +496,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var doc = new StoredMessage
         {
             Id = messageId,
-            PartitionKey = StoredMessage.ChatPartition(chatId),
             UniqueId = uniqueId,
             JsonFileName = jsonFileName,
             ChatId = chatId,
@@ -521,7 +520,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var doc = new StoredMessage
         {
             Id = messageId,
-            PartitionKey = StoredMessage.ChannelPartition(teamId, channelId),
             UniqueId = uniqueId,
             JsonFileName = jsonFileName,
             TeamId = teamId,
