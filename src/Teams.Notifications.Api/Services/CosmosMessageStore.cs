@@ -12,7 +12,7 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
     {
         try
         {
-            var response = await _container.ReadItemAsync<StoredMessage>(messageId, PartitionKey.None, cancellationToken: token);
+            var response = await _container.ReadItemAsync<StoredMessage>(messageId, new(messageId), cancellationToken: token);
             return response.Resource;
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -24,14 +24,14 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
     public async Task UpsertAsync(StoredMessage message, CancellationToken token)
     {
         ValidateForUpsert(message);
-        await _container.UpsertItemAsync(message, PartitionKey.None, cancellationToken: token);
+        await _container.UpsertItemAsync(message, new(message.Id), cancellationToken: token);
     }
 
     public async Task DeleteAsync(string messageId, CancellationToken token)
     {
         try
         {
-            await _container.DeleteItemAsync<StoredMessage>(messageId, PartitionKey.None, cancellationToken: token);
+            await _container.DeleteItemAsync<StoredMessage>(messageId, new(messageId), cancellationToken: token);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
