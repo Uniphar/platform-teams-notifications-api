@@ -23,6 +23,7 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
 
     public async Task UpsertAsync(StoredMessage message, CancellationToken token)
     {
+        ValidateForUpsert(message);
         await _container.UpsertItemAsync(message, new(message.PartitionKey), cancellationToken: token);
     }
 
@@ -68,5 +69,24 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
         if (!iterator.HasMoreResults) return null;
         var page = await iterator.ReadNextAsync(token);
         return page.FirstOrDefault();
+    }
+
+    private static void ValidateForUpsert(StoredMessage message)
+    {
+        if (string.IsNullOrWhiteSpace(message.Id))
+        {
+            throw new InvalidOperationException("Cannot upsert StoredMessage with an empty id.");
+        }
+
+        if (string.IsNullOrWhiteSpace(message.PartitionKey))
+        {
+            throw new InvalidOperationException("Cannot upsert StoredMessage with an empty partition key.");
+        }
+
+        if (message.Id.Any(c => c is '/' or '\\' or '?' or '#' || char.IsControl(c)))
+        {
+            throw new InvalidOperationException(
+                $"Cannot upsert StoredMessage with id '{message.Id}'. Cosmos id cannot contain '/', '\\', '?', '#', or control characters.");
+        }
     }
 }
