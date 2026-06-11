@@ -15,6 +15,7 @@
 	</DataCollectionRunSettings>
 	<TestRunParameters>
 		<Parameter name="Environment" value="dev" />
+		<Parameter name="AZURE_ENTRA_EXTERNAL_TENANT_ID" value="8763c4c7-b395-45c5-ac35-315b180777f5" />
 		<Parameter name="ClientId" value="208bce8c-d9ed-4567-aa5d-89e3ffcac81f" />
 	</TestRunParameters>
 	<RunConfiguration>

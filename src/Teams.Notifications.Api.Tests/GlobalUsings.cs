@@ -1,9 +1,12 @@
 // Global using directives
 
+global using System.Diagnostics;
 global using System.Reflection;
+global using System.Runtime.CompilerServices;
 global using System.Security.Claims;
 global using AdaptiveCards;
 global using Azure.Core;
+global using Azure.Extensions.AspNetCore.Configuration.Secrets;
 global using Azure.Identity;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Core.Models;
@@ -17,5 +20,6 @@ global using Teams.Notifications.Api.Extensions;
 global using Teams.Notifications.Api.Models;
 global using Teams.Notifications.Api.Services;
 global using Teams.Notifications.Api.Services.Interfaces;
+global using Teams.Notifications.Api.Tests.Helper;
 global using Uniphar.Platform.Telemetry;
 global using KeyValuePair = System.Collections.Generic.KeyValuePair;

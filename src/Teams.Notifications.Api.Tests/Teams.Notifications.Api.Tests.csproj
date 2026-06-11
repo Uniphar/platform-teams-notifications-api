@@ -8,6 +8,7 @@
 		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="*" />
 		<PackageReference Include="Azure.Identity" Version="*" />
 		<PackageReference Include="GitHubActionsTestLogger" Version="*">
 			<PrivateAssets>all</PrivateAssets>
@@ -27,10 +28,17 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.Azure.Kusto.Data" Version="*" />
 		<PackageReference Include="Microsoft.Bcl.Memory" Version="*" />
+		<PackageReference Include="NSwag.MSBuild" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Teams.Notifications.Api\Teams.Notifications.Api.csproj" />
 	</ItemGroup>
+	<Target Name="RunNswag" BeforeTargets="BeforeBuild">
+		<Exec Command="$(NSwagExe_Net80) run teams-api.nswag" WorkingDirectory="$(MSBuildProjectDirectory)" />
+	</Target>
 	<PropertyGroup>
 		<RunSettingsFilePath>$(MSBuildProjectDirectory)\runsettings\local.runsettings</RunSettingsFilePath>
 	</PropertyGroup>
