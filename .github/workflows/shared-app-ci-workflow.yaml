@@ -30,7 +30,7 @@ jobs:
         run: dotnet tool install NSwag.ConsoleCore --global
 
       - name: Run NSwag to generate API clients
-        working-directory: ./src/${{ inputs.applicationFolder }}.Tests
+        working-directory: ./src/${{ inputs.APPLICATION_NAME }}.Tests
         run: |
           nswag run teams-api.nswag
       - name: Run unit tests
