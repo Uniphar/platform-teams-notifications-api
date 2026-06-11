@@ -29,7 +29,7 @@ public class {{name}}Controller : ControllerBase
     [HttpPost("{{name}}ToUser")]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> PostUser({{name}}Model model, [FromQuery(Name = "UserName")] string user, CancellationToken cancellationToken)
     {
@@ -64,7 +64,7 @@ public class {{name}}Controller : ControllerBase
     [HttpPost("{{name}}")]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> Post({{name}}Model model, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
@@ -93,7 +93,7 @@ public class {{name}}Controller : ControllerBase
     [HttpPost("{{name}}WithFile")]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> PostWithFile([FromQuery] {{name}}Model model, IFormFile file, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
@@ -130,7 +130,7 @@ public class {{name}}Controller : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> Delete(string uniqueId, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
@@ -160,7 +160,7 @@ public class {{name}}Controller : ControllerBase
     [HttpGet("{{name}}")]
     [ProducesResponseType<string>(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IResult> Get(string uniqueId, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
