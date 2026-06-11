@@ -50,7 +50,13 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
+      - name: Install nswag tool
+        run: dotnet tool install NSwag.ConsoleCore --global
 
+      - name: Run NSwag to generate API clients
+        working-directory: ./src/${{ inputs.applicationFolder }}.Tests
+        run: |
+          nswag run teams-api.nswag
       # see https://github.com/Azure/azure-cli/issues/28708#issuecomment-2047256166
       # we need this to do actions on the graph and blob clients in the integration tests
       - name: Get a login code for longer then 5min
