@@ -15,7 +15,6 @@
 	<TestRunParameters>
 		<Parameter name="Environment" value="test" />
 		<Parameter name="AZURE_ENTRA_EXTERNAL_TENANT_ID" value="91550823-f8b0-4d7c-b7f4-e6d8efc88d71" />
-		<Parameter name="ClientId" value="e3ee59e4-5bb9-4523-93e3-4f7712e4200c" />
 	</TestRunParameters>
 	<RunConfiguration>
 		<CollectSourceInformation>true</CollectSourceInformation>

@@ -1,3 +1,4 @@
+using System.Data;
 using Teams.Notifications.Api.Tests.TeamsClient;
 using IntegrationSuiteErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.IntegrationSuiteErrorModel;
 using LogicAppErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.LogicAppErrorModel;
@@ -6,7 +7,6 @@ namespace Teams.Notifications.Api.Tests.IntegrationTests;
 
 [TestClass]
 [TestCategory("Integration")]
-[TestCategory("Smoke")]
 public sealed class TeamsNotificationApiIntegrationTests
 {
     private const string DevTeamName = "DAWN - Integrations Errors Dev";
@@ -17,54 +17,42 @@ public sealed class TeamsNotificationApiIntegrationTests
     private static CancellationToken _cancellationToken;
     private static TeamsNotificationApi? _client;
     private static string _channelTeamName = string.Empty;
-    private static string _configuredEnvironment = string.Empty;
-    private static string? _skipReason;
 
     [ClassInitialize]
     public static async Task ClassInitialize(TestContext context)
     {
         _cancellationToken = context.CancellationToken;
-        _configuredEnvironment = (context.Properties["Environment"]?.ToString() ?? "dev").Trim().ToLowerInvariant();
+        var runEnv = (context.Properties["Environment"]?.ToString() ?? "dev").Trim().ToLowerInvariant();
+        var externalTenantId = context.Properties["AZURE_ENTRA_EXTERNAL_TENANT_ID"]?.ToString() ?? throw new NoNullAllowedException("Needs to be initialised for integration test");
 
-        if (_configuredEnvironment == "prod")
+        var apiProjectPath = Path.GetFullPath("../../../../Teams.Notifications.Api");
+        var env = runEnv == "local" ? "dev" : runEnv;
+        var config = new ConfigurationBuilder()
+            .SetBasePath(apiProjectPath)
+            .AddJsonFile("appsettings.json", false, false)
+            .AddJsonFile($"appsettings.{runEnv}.json", true, false)
+            .AddAzureKeyVault(new($"https://uni-devops-app-{env}-kv.vault.azure.net/"), new DefaultAzureCredential())
+            .Build();
+        var tokenCredentials = new ClientSecretCredential(externalTenantId,
+            config["integration-test-platform-teams-notification-api-client-id"] ?? throw new NoNullAllowedException("integration-test-platform-teams-notification-api-client-id missing in configuration"),
+            config["integration-test-platform-teams-notification-api-client-secret"] ?? throw new NoNullAllowedException("integration-test-platform-teams-notification-api-client-secret missing in configuration"));
+        var customHandler = new HttpClientAuthorizationDelegatingHandler(tokenCredentials, config)
         {
-            _skipReason = "These end-to-end card mutation tests are intended for dev and test only.";
-            return;
-        }
+            InnerHandler = new HttpClientHandler()
+        };
+        var httpClient = new HttpClient(customHandler)
+        {
+            // if prod no .prod in the URL
+            BaseAddress = new($"https://api.{env}.uniphar.ie/".Replace(".prod", ""))
+        };
 
-        try
-        {
-            var keyVaultCredential = CreateKeyVaultCredential();
-            var apiCredential = CreateApiCredential(context);
-            var configuration = await BuildConfigurationAsync(_configuredEnvironment, keyVaultCredential);
-            var handler = new HttpClientAuthorizationDelegatingHandler(apiCredential, configuration)
-            {
-                InnerHandler = new HttpClientHandler()
-            };
-
-            var httpClient = new HttpClient(handler)
-            {
-                BaseAddress = new(GetApiBaseUrl(_configuredEnvironment))
-            };
-
-            _client = new(httpClient);
-            _channelTeamName = _configuredEnvironment == "test" ? TestTeamName : DevTeamName;
-        }
-        catch (CredentialUnavailableException ex)
-        {
-            _skipReason = $"Azure credentials unavailable for end-to-end tests: {ex.Message}";
-        }
-        catch (AuthenticationFailedException ex)
-        {
-            _skipReason = $"Azure authentication failed for end-to-end tests: {ex.Message}";
-        }
+        _client = new(httpClient);
+        _channelTeamName = env == "test" ? TestTeamName : DevTeamName;
     }
 
     [TestMethod]
     public async Task IntegrationSuiteError_CanBeAddedAndRemoved_EndToEnd()
     {
-        SkipIfNeeded();
-
         var uniqueId = $"int-test-{Guid.NewGuid():N}";
         var model = new IntegrationSuiteErrorRequest
         {
@@ -100,8 +88,6 @@ public sealed class TeamsNotificationApiIntegrationTests
     [TestMethod]
     public async Task LogicAppError_CanBeAddedAndRemoved_EndToEnd()
     {
-        SkipIfNeeded();
-
         var uniqueId = $"int-test-{Guid.NewGuid():N}";
         var model = new LogicAppErrorRequest
         {
@@ -130,49 +116,6 @@ public sealed class TeamsNotificationApiIntegrationTests
         await _client!.LogicAppErrorGetsEmpty(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
     }
 
-    private static async Task<IConfiguration> BuildConfigurationAsync(string environment, TokenCredential credential)
-    {
-        var apiProjectPath = Path.GetFullPath("../../../../Teams.Notifications.Api");
-        var builder = new ConfigurationBuilder()
-            .SetBasePath(apiProjectPath)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false);
-
-        if (environment == "local")
-        {
-            builder.AddJsonFile("appsettings.local.json", optional: false, reloadOnChange: false);
-        }
-        else
-        {
-            builder.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"), credential);
-        }
-
-        return await Task.FromResult(builder.Build());
-    }
-
-    private static TokenCredential CreateKeyVaultCredential() => new DefaultAzureCredential();
-
-    private static TokenCredential CreateApiCredential(TestContext context)
-    {
-        if (_configuredEnvironment == "local")
-        {
-            var tenantId = context.Properties["TenantId"]?.ToString() ?? throw new InvalidOperationException("TenantId is required for local test runs.");
-            var clientId = context.Properties["ClientId"]?.ToString() ?? throw new InvalidOperationException("ClientId is required for local test runs.");
-            var clientSecret = context.Properties["ClientSecret"]?.ToString() ?? throw new InvalidOperationException("ClientSecret is required for local test runs.");
-            return new ClientSecretCredential(tenantId, clientId, clientSecret);
-        }
-
-        var externalTenantId = context.Properties["AZURE_ENTRA_EXTERNAL_TENANT_ID"]?.ToString();
-        return string.IsNullOrWhiteSpace(externalTenantId)
-            ? new DefaultAzureCredential()
-            : new DefaultAzureCredential(new DefaultAzureCredentialOptions { TenantId = externalTenantId });
-    }
-
-    private static string GetApiBaseUrl(string environment) => environment switch
-    {
-        "prod" => "https://api.uniphar.ie/",
-        _ => $"https://api.{environment}.uniphar.ie/"
-    };
 
     private static async Task DeleteIfPresentAsync(Func<Task> deleteAction)
     {
@@ -180,16 +123,6 @@ public sealed class TeamsNotificationApiIntegrationTests
         {
             await deleteAction();
         }
-        catch (ApiException ex) when (ex.StatusCode == 400 || ex.StatusCode == 403 || ex.StatusCode == 404)
-        {
-        }
-    }
-
-    private static void SkipIfNeeded()
-    {
-        if (!string.IsNullOrWhiteSpace(_skipReason))
-        {
-            Assert.Inconclusive(_skipReason);
-        }
+        catch (ApiException ex) when (ex.StatusCode is 400 or 403 or 404) { }
     }
 }

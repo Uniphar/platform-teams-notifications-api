@@ -1,5 +1,3 @@
-using Teams.Notifications.Api.Tests.TeamsClient;
-
 namespace Teams.Notifications.Api.Tests.TeamsClient;
 
 public partial class TeamsNotificationApi
