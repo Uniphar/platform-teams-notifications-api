@@ -165,16 +165,50 @@ public class CardManagerServiceTests
                     Assert.DoesNotContain("}}", textBlock.Text, "No template string should be found!, found: {0}", textBlock.Text);
                     break;
                 case AdaptiveFactSet adaptiveSet:
-                {
-                    foreach (var fact in adaptiveSet.Facts)
                     {
-                        Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                        Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                    }
+                        foreach (var fact in adaptiveSet.Facts)
+                        {
+                            Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
+                            Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
             }
+        }
+    }
+
+    [TestMethod]
+    public void ResolveMessageId_ReturnsFallback_WhenCandidateIsMissing()
+    {
+        // Arrange
+        var method = typeof(CardManagerService)
+            .GetMethod("ResolveMessageId", BindingFlags.NonPublic | BindingFlags.Static);
+
+        // Act
+        var result = method!.Invoke(null, new object?[] { null, "existing-id", "update", "WelcomeCard.json" }) as string;
+
+        // Assert
+        Assert.AreEqual("existing-id", result);
+    }
+
+    [TestMethod]
+    public void ResolveMessageId_Throws_WhenCandidateAndFallbackAreMissing()
+    {
+        // Arrange
+        var method = typeof(CardManagerService)
+            .GetMethod("ResolveMessageId", BindingFlags.NonPublic | BindingFlags.Static);
+
+        // Act / Assert
+        try
+        {
+            method!.Invoke(null, new object?[] { null, null, "update", "WelcomeCard.json" });
+            Assert.Fail("Expected ResolveMessageId to throw when both candidate and fallback ids are empty.");
+        }
+        catch (TargetInvocationException ex)
+        {
+            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
+            Assert.Contains("did not return a valid message id", ex.InnerException!.Message);
         }
     }
 }

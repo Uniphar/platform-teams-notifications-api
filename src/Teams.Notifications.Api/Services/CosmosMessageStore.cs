@@ -48,6 +48,14 @@ public sealed class CosmosMessageStore(CosmosClient client, IOptions<CosmosOptio
         };
 
         await dbResponse.Database.CreateContainerIfNotExistsAsync(containerProperties);
+
+        var containerResponse = await _container.ReadContainerAsync();
+        var partitionKeyPath = containerResponse.Resource.PartitionKeyPath;
+        if (!string.Equals(partitionKeyPath, "/pk", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Cosmos container '{options.Value.ContainerName}' in database '{options.Value.DatabaseName}' has partition key path '{partitionKeyPath}'. Expected '/pk'.");
+        }
     }
 
     private async Task<StoredMessage?> QuerySingleAsync(string partitionKey, string jsonFileName, string uniqueId, CancellationToken token)
