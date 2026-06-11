@@ -8,13 +8,13 @@ public sealed record StoredMessage
 
     /// <summary>Partition key: <c>chat:{chatId}</c> or <c>channel:{teamId}:{channelId}</c>.</summary>
     [JsonPropertyName("pk")]
-    public string PartitionKey { get; init; } = string.Empty;
+    public required string PartitionKey { get; init; }
 
     [JsonPropertyName("uniqueId")]
-    public string UniqueId { get; init; } = string.Empty;
+    public required string UniqueId { get; init; }
 
     [JsonPropertyName("jsonFileName")]
-    public string JsonFileName { get; init; } = string.Empty;
+    public required string JsonFileName { get; init; }
 
     [JsonPropertyName("chatId")]
     public string? ChatId { get; init; }
@@ -26,7 +26,7 @@ public sealed record StoredMessage
     public string? ChannelId { get; init; }
 
     [JsonPropertyName("cardJson")]
-    public string CardJson { get; init; } = string.Empty;
+    public required string CardJson { get; init; }
 
     [JsonPropertyName("createdAt")]
     public DateTimeOffset CreatedAt { get; init; }
