@@ -244,9 +244,12 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     try
                     {
                         var updateResult = await turnContext.UpdateActivityAsync(activity, cancellationToken);
-                        stored!.CardJson = updatedCardJson;
-                        stored.UpdatedAt = DateTimeOffset.UtcNow;
-                        await cosmosMessageStore.UpsertAsync(stored, cancellationToken);
+                        var updatedStored = stored! with
+                        {
+                            CardJson = updatedCardJson,
+                            UpdatedAt = DateTimeOffset.UtcNow
+                        };
+                        await cosmosMessageStore.UpsertAsync(updatedStored, cancellationToken);
 
                         telemetry.TrackEvent("ChannelUpdateCardRemoveActions",
                             new()
@@ -341,7 +344,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    private async Task CreateOrUpdateChannelCardAsync<T>(string fileName,        T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
+    private async Task CreateOrUpdateChannelCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
     {
         var activity = new Activity
         {
@@ -486,42 +489,35 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
     private Task UpsertChatStoredMessageAsync(string messageId, string chatId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
-        var doc = existing ??
-                  new StoredMessage
-                  {
-                      PartitionKey = StoredMessage.ChatPartition(chatId),
-                      ChatId = chatId,
-                      CreatedAt = now
-                  };
-        doc.Id = messageId;
-        doc.PartitionKey = StoredMessage.ChatPartition(chatId);
-        doc.UniqueId = uniqueId;
-        doc.JsonFileName = jsonFileName;
-        doc.ChatId = chatId;
-        doc.CardJson = cardJson;
-        doc.UpdatedAt = now;
+        var doc = new StoredMessage
+        {
+            Id = messageId,
+            PartitionKey = StoredMessage.ChatPartition(chatId),
+            UniqueId = uniqueId,
+            JsonFileName = jsonFileName,
+            ChatId = chatId,
+            CardJson = cardJson,
+            CreatedAt = existing?.CreatedAt ?? now,
+            UpdatedAt = now
+        };
         return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
     private Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
-        var doc = existing ??
-                  new StoredMessage
-                  {
-                      PartitionKey = StoredMessage.ChannelPartition(teamId, channelId),
-                      TeamId = teamId,
-                      ChannelId = channelId,
-                      CreatedAt = now
-                  };
-        doc.Id = messageId;
-        doc.PartitionKey = StoredMessage.ChannelPartition(teamId, channelId);
-        doc.UniqueId = uniqueId;
-        doc.JsonFileName = jsonFileName;
-        doc.TeamId = teamId;
-        doc.ChannelId = channelId;
-        doc.CardJson = cardJson;
-        doc.UpdatedAt = now;
+        var doc = new StoredMessage
+        {
+            Id = messageId,
+            PartitionKey = StoredMessage.ChannelPartition(teamId, channelId),
+            UniqueId = uniqueId,
+            JsonFileName = jsonFileName,
+            TeamId = teamId,
+            ChannelId = channelId,
+            CardJson = cardJson,
+            CreatedAt = existing?.CreatedAt ?? now,
+            UpdatedAt = now
+        };
         return cosmosMessageStore.UpsertAsync(doc, token);
     }
 

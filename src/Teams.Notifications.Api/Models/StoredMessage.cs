@@ -1,38 +1,38 @@
 namespace Teams.Notifications.Api.Models;
 
-public sealed class StoredMessage
+public sealed record StoredMessage
 {
     /// <summary>Graph message id. Document id within the partition.</summary>
     [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
+    public string Id { get; init; } = string.Empty;
 
     /// <summary>Partition key: <c>chat:{chatId}</c> or <c>channel:{teamId}:{channelId}</c>.</summary>
     [JsonPropertyName("pk")]
-    public string PartitionKey { get; set; } = string.Empty;
+    public string PartitionKey { get; init; } = string.Empty;
 
     [JsonPropertyName("uniqueId")]
-    public string UniqueId { get; set; } = string.Empty;
+    public string UniqueId { get; init; } = string.Empty;
 
     [JsonPropertyName("jsonFileName")]
-    public string JsonFileName { get; set; } = string.Empty;
+    public string JsonFileName { get; init; } = string.Empty;
 
     [JsonPropertyName("chatId")]
-    public string? ChatId { get; set; }
+    public string? ChatId { get; init; }
 
     [JsonPropertyName("teamId")]
-    public string? TeamId { get; set; }
+    public string? TeamId { get; init; }
 
     [JsonPropertyName("channelId")]
-    public string? ChannelId { get; set; }
+    public string? ChannelId { get; init; }
 
     [JsonPropertyName("cardJson")]
-    public string CardJson { get; set; } = string.Empty;
+    public string CardJson { get; init; } = string.Empty;
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; init; }
 
     public static string ChatPartition(string chatId) => $"chat:{chatId}";
     public static string ChannelPartition(string teamId, string channelId) => $"channel:{teamId}:{channelId}";
