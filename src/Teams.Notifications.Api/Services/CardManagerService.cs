@@ -312,12 +312,13 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     {
                         // Create new message
                         var newResult = await turnContext.SendActivityAsync(activity, cancellationToken);
-                        await UpsertChatStoredMessageAsync(newResult.Id, chatId, fileName, model.UniqueId, card, null, cancellationToken);
+                        var persistedMessageId = ResolveMessageId(newResult.Id, idFromOldMessage, "send", fileName);
+                        await UpsertChatStoredMessageAsync(persistedMessageId, chatId, fileName, model.UniqueId, card, null, cancellationToken);
 
                         telemetry.TrackEvent("ChatNewMessage",
                             new()
                             {
-                                ["MessageId"] = newResult.Id,
+                                ["MessageId"] = persistedMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
@@ -325,12 +326,13 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     {
                         // Update existing message
                         var updateResult = await turnContext.UpdateActivityAsync(activity, cancellationToken);
-                        await UpsertChatStoredMessageAsync(updateResult.Id, chatId, fileName, model.UniqueId, card, stored, cancellationToken);
+                        var persistedMessageId = ResolveMessageId(updateResult.Id, idFromOldMessage, "update", fileName);
+                        await UpsertChatStoredMessageAsync(persistedMessageId, chatId, fileName, model.UniqueId, card, stored, cancellationToken);
 
                         telemetry.TrackEvent("ChatUpdateMessage",
                             new()
                             {
-                                ["MessageId"] = updateResult.Id,
+                                ["MessageId"] = persistedMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
@@ -379,14 +381,15 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     {
                         // Create new message
                         var newResult = await turnContext.SendActivityAsync(activity, cancellationToken);
-                        await UpsertChannelStoredMessageAsync(newResult.Id, teamId, channelId, fileName, model.UniqueId, card, null, cancellationToken);
+                        var persistedMessageId = ResolveMessageId(newResult.Id, idFromOldMessage, "send", fileName);
+                        await UpsertChannelStoredMessageAsync(persistedMessageId, teamId, channelId, fileName, model.UniqueId, card, null, cancellationToken);
 
                         telemetry.TrackEvent("ChannelNewMessage",
                             new()
                             {
                                 ["TeamId"] = teamId,
                                 ["ChannelId"] = channelId,
-                                ["MessageId"] = newResult.Id,
+                                ["MessageId"] = persistedMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
@@ -394,14 +397,15 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     {
                         // Update existing message
                         var updateResult = await turnContext.UpdateActivityAsync(activity, cancellationToken);
-                        await UpsertChannelStoredMessageAsync(updateResult.Id, teamId, channelId, fileName, model.UniqueId, card, stored, cancellationToken);
+                        var persistedMessageId = ResolveMessageId(updateResult.Id, idFromOldMessage, "update", fileName);
+                        await UpsertChannelStoredMessageAsync(persistedMessageId, teamId, channelId, fileName, model.UniqueId, card, stored, cancellationToken);
 
                         telemetry.TrackEvent("ChannelUpdateMessage",
                             new()
                             {
                                 ["TeamId"] = teamId,
                                 ["ChannelId"] = channelId,
-                                ["MessageId"] = updateResult.Id,
+                                ["MessageId"] = persistedMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
@@ -501,6 +505,14 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             UpdatedAt = now
         };
         return cosmosMessageStore.UpsertAsync(doc, token);
+    }
+
+    private static string ResolveMessageId(string? candidateMessageId, string? fallbackMessageId, string operation, string fileName)
+    {
+        var resolved = !string.IsNullOrWhiteSpace(candidateMessageId) ? candidateMessageId : fallbackMessageId;
+        if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
+
+        throw new InvalidOperationException($"Teams did not return a valid message id during '{operation}' for '{fileName}'.");
     }
 
     private Task UpsertChannelStoredMessageAsync(string messageId, string teamId, string channelId, string jsonFileName, string uniqueId, string cardJson, StoredMessage? existing, CancellationToken token)
