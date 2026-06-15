@@ -59,7 +59,7 @@ internal static class LogicAppActionHandler
                     storage_folder = $"/{channelName}/error/"
                 };
                 // Upload the file to the external API
-                var uploadResponse = await frontgateApiService.UploadFileAsync(model.PostOriginalBlobUri ?? string.Empty, fileInfo, cancellationToken);
+                using var uploadResponse = await frontgateApiService.UploadFileAsync(model.PostOriginalBlobUri ?? string.Empty, fileInfo, cancellationToken);
 
                 if (uploadResponse.IsSuccessStatusCode)
                 {

@@ -16,7 +16,7 @@ public sealed class ServiceNowApiService(IHttpClientFactory factory, IConfigurat
         var token = await _credential.GetTokenAsync(new([_serviceNowApiScope]), cancellationToken);
         _httpClient.DefaultRequestHeaders.Authorization = new("Bearer", token.Token);
         var encodedId = Uri.EscapeDataString(uniqueId);
-        var response = await _httpClient.PostAsync($"/service-now-api/LogicAppError/resolve?uniqueId={encodedId}", null, cancellationToken);
+        using var response = await _httpClient.PostAsync($"/service-now-api/LogicAppError/resolve?uniqueId={encodedId}", null, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 }
