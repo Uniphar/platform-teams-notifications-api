@@ -75,7 +75,7 @@ internal static class LogicAppActionHandler
                         }
                         catch (Exception snEx)
                         {
-                            logger.LogWarning(snEx, "Failed to resolve ServiceNow incident for UniqueId {UniqueId}", model.PostUniqueId);
+                            logger.LogError(snEx, "Failed to resolve ServiceNow incident for UniqueId {UniqueId}", model.PostUniqueId);
                             telemetry.TrackEvent("ServiceNowResolveIncidentFailed", new() { ["UniqueId"] = model.PostUniqueId, ["Error"] = snEx.Message });
                         }
                     }
@@ -100,7 +100,7 @@ internal static class LogicAppActionHandler
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "Failed to read error message from upload response");
+                    logger.LogError(ex, "Failed to read error message from upload response");
                 }
 
                 var uploadFailureMsg = $"File upload failed with status code {uploadResponse.StatusCode}: {errorMessage}";
