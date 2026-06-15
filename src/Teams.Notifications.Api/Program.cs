@@ -101,7 +101,6 @@ if (environment == "local") environmentSuffix = ".dev";
 var apiUrl = new Uri($"https://api{environmentSuffix}.uniphar.ie/");
 
 
-var jitterRandomizer = new Random();
 builder.Services.AddHttpClient();
 builder
     .Services
