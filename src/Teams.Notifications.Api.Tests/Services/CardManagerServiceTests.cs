@@ -28,7 +28,8 @@ public class CardManagerServiceTests
     private static StoredMessage ChannelDoc(string teamId, string channelId, string jsonFileName, string uniqueId, string messageId) =>
         new()
         {
-            Id = messageId,
+            Id = uniqueId,
+            MessageId = messageId,
             TeamId = teamId,
             ChannelId = channelId,
             JsonFileName = jsonFileName,

@@ -25,7 +25,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 throw new InvalidOperationException(errorMsg);
             }
 
-            conversationReference.ActivityId = stored.Id;
+            conversationReference.ActivityId = stored.MessageId;
             await adapter.ContinueConversationAsync(AgentClaims.CreateIdentity(_clientId),
                 conversationReference,
                 async (turnContext, cancellationToken) =>
@@ -40,14 +40,14 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                             {
                                 ["Team"] = teamName,
                                 ["Channel"] = channelName,
-                                ["Id"] = stored.Id,
+                                ["Id"] = stored.MessageId,
                                 ["UniqueId"] = uniqueId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
                     catch (Exception ex)
                     {
-                        logger.LogError(ex, "Error deleting message '{MessageId}' from channel '{Channel}'", stored.Id, channelName);
+                        logger.LogError(ex, "Error deleting message '{MessageId}' from channel '{Channel}'", stored.MessageId, channelName);
                         throw;
                     }
                 },
@@ -293,7 +293,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         };
 
         var conversationReference = GetConversationReference(chatId);
-        var idFromOldMessage = stored?.Id;
+        var idFromOldMessage = stored?.MessageId;
 
         if (!string.IsNullOrWhiteSpace(idFromOldMessage))
         {
@@ -362,7 +362,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         };
 
         var conversationReference = GetConversationReference(channelId);
-        var idFromOldMessage = stored?.Id;
+        var idFromOldMessage = stored?.MessageId;
 
         if (!string.IsNullOrWhiteSpace(idFromOldMessage))
         {
@@ -495,7 +495,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var now = DateTimeOffset.UtcNow;
         var doc = new StoredMessage
         {
-            Id = messageId,
+            Id = uniqueId,
+            MessageId = messageId,
             UniqueId = uniqueId,
             JsonFileName = jsonFileName,
             ChatId = chatId,
@@ -519,7 +520,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         var now = DateTimeOffset.UtcNow;
         var doc = new StoredMessage
         {
-            Id = messageId,
+            Id = uniqueId,
+            MessageId = messageId,
             UniqueId = uniqueId,
             JsonFileName = jsonFileName,
             TeamId = teamId,
