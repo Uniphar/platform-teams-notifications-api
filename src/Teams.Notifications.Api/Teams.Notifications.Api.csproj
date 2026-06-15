@@ -31,7 +31,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.*" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="*" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="*" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="*" />
     <PackageReference Include="Microsoft.Graph.Beta" Version="*-*" />
     <PackageReference Include="Uniphar.Platform.Telemetry" Version="*" />

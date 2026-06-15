@@ -6,9 +6,14 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
     ///     SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
     ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
     /// </summary>
-    private static readonly AsyncPolicy<DriveItem?> _webUrlRetryPolicy = Policy
-        .HandleResult<DriveItem?>(item => item?.WebUrl is null)
-        .WaitAndRetryAsync(4, attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)));
+    private static readonly ResiliencePipeline<DriveItem?> _webUrlRetryPolicy = new ResiliencePipelineBuilder<DriveItem?>()
+        .AddRetry(new RetryStrategyOptions<DriveItem?>
+        {
+            ShouldHandle = new PredicateBuilder<DriveItem?>().HandleResult(item => item?.WebUrl is null),
+            MaxRetryAttempts = 4,
+            DelayGenerator = args => ValueTask.FromResult<TimeSpan?>(TimeSpan.FromMilliseconds(500 * Math.Pow(2, args.AttemptNumber)))
+        })
+        .Build();
 
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
@@ -255,7 +260,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
         var itemFound = await _webUrlRetryPolicy.ExecuteAsync(
-            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
+            async ct => await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
             token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);

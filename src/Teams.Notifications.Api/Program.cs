@@ -55,6 +55,7 @@ global using Microsoft.IdentityModel.Validators;
 global using Microsoft.Kiota.Abstractions;
 global using Microsoft.OpenApi;
 global using Polly;
+global using Polly.Retry;
 global using Teams.Notifications.Api;
 global using Teams.Notifications.Api.Action.Models;
 global using Teams.Notifications.Api.Agents;
@@ -105,11 +106,7 @@ builder.Services.AddHttpClient();
 builder
     .Services
     .AddHttpClient("frontgate-api", client => client.BaseAddress = apiUrl)
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(jitterRandomizer.Next(0, 100))))
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.CircuitBreakerAsync(
-        5,
-        TimeSpan.FromSeconds(30)
-    ));
+    .AddStandardResilienceHandler();
 // will use workload if available
 if (!string.IsNullOrWhiteSpace(clientSecret))
 {
@@ -145,8 +142,7 @@ builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
 builder
     .Services
     .AddHttpClient("service-now-api", client => client.BaseAddress = apiUrl)
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 100))))
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+    .AddStandardResilienceHandler();
 builder.Services.AddTransient<IServiceNowApiService, ServiceNowApiService>();
 
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
