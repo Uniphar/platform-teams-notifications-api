@@ -15,7 +15,7 @@ public sealed class TeamsNotificationApiIntegrationTests
     private const string IntegrationSuiteChannelName = "Integration Suite Errors";
 
     private static CancellationToken _cancellationToken;
-    private static TeamsNotificationApi? _client;
+    private static TeamsNotificationApi _client = null!;
     private static string _channelTeamName = string.Empty;
 
     [ClassInitialize]
@@ -70,8 +70,8 @@ public sealed class TeamsNotificationApiIntegrationTests
 
         try
         {
-            await _client!.IntegrationSuiteErrorPOSTAsync(_channelTeamName, IntegrationSuiteChannelName, model, _cancellationToken);
-            await _client!.IntegrationSuiteErrorGetsAnObject(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
+            await _client.IntegrationSuiteErrorPOSTAsync(_channelTeamName, IntegrationSuiteChannelName, model, _cancellationToken);
+            await _client.IntegrationSuiteErrorGetsAnObject(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
 
             var card = await _client.IntegrationSuiteErrorGETAsync(uniqueId, _channelTeamName, IntegrationSuiteChannelName, _cancellationToken);
             Assert.IsFalse(string.IsNullOrWhiteSpace(card));
@@ -79,10 +79,10 @@ public sealed class TeamsNotificationApiIntegrationTests
         }
         finally
         {
-            await DeleteIfPresentAsync(() => _client!.IntegrationSuiteErrorDELETEAsync(uniqueId, _channelTeamName, IntegrationSuiteChannelName, CancellationToken.None));
+            await DeleteIfPresentAsync(() => _client.IntegrationSuiteErrorDELETEAsync(uniqueId, _channelTeamName, IntegrationSuiteChannelName, CancellationToken.None));
         }
 
-        await _client!.IntegrationSuiteErrorGetsEmpty(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
+        await _client.IntegrationSuiteErrorGetsEmpty(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
     }
 
     [TestMethod]
@@ -101,8 +101,8 @@ public sealed class TeamsNotificationApiIntegrationTests
 
         try
         {
-            await _client!.LogicAppErrorPOSTAsync(_channelTeamName, LogicAppChannelName, model, _cancellationToken);
-            await _client!.LogicAppErrorGetsAnObject(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
+            await _client.LogicAppErrorPOSTAsync(_channelTeamName, LogicAppChannelName, model, _cancellationToken);
+            await _client.LogicAppErrorGetsAnObject(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
 
             var card = await _client.LogicAppErrorGETAsync(uniqueId, _channelTeamName, LogicAppChannelName, _cancellationToken);
             Assert.IsFalse(string.IsNullOrWhiteSpace(card));
@@ -110,10 +110,10 @@ public sealed class TeamsNotificationApiIntegrationTests
         }
         finally
         {
-            await DeleteIfPresentAsync(() => _client!.LogicAppErrorDELETEAsync(uniqueId, _channelTeamName, LogicAppChannelName, CancellationToken.None));
+            await DeleteIfPresentAsync(() => _client.LogicAppErrorDELETEAsync(uniqueId, _channelTeamName, LogicAppChannelName, CancellationToken.None));
         }
 
-        await _client!.LogicAppErrorGetsEmpty(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
+        await _client.LogicAppErrorGetsEmpty(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
     }
 
 

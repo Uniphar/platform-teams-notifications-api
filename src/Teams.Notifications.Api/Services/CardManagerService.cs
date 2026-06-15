@@ -16,7 +16,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             await teamsManagerService.CheckOrInstallBotIsInTeam(teamId, token);
             var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
             var conversationReference = GetConversationReference(channelId);
-            var stored = await cosmosMessageStore.FindByChannelAsync(jsonFileName, uniqueId, token);
+            var stored = await cosmosMessageStore.FindMessageByUniqueId(uniqueId, token);
 
             if (stored is null)
             {
@@ -40,7 +40,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                             {
                                 ["Team"] = teamName,
                                 ["Channel"] = channelName,
-                                ["Id"] = stored.MessageId,
+                                ["Id"] = stored.MessageId ?? string.Empty,
                                 ["UniqueId"] = uniqueId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
@@ -65,10 +65,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         try
         {
             var stopwatch = Stopwatch.StartNew();
-            var teamId = await teamsManagerService.GetTeamIdAsync(teamName, token);
-            await teamsManagerService.CheckOrInstallBotIsInTeam(teamId, token);
-            var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
-            var stored = await cosmosMessageStore.FindByChannelAsync(jsonFileName, uniqueId, token);
+            var stored = await cosmosMessageStore.FindMessageByUniqueId(uniqueId, token);
 
             telemetry.TrackEvent("ChannelGetCard",
                 new()
@@ -147,7 +144,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             var chatId = await teamsManagerService.GetChatIdAsync(installedAppId, userAadObjectId, token);
             if (string.IsNullOrWhiteSpace(chatId)) throw new InvalidOperationException($"Unable to retrieve chat for user '{user}'");
 
-            var stored = await cosmosMessageStore.FindByChatAsync(jsonFileName, model.UniqueId, token);
+            var stored = await cosmosMessageStore.FindMessageByUniqueId(model.UniqueId, token);
             var cardJson = await CreateCardFromTemplateAsync(jsonFileName, null, model, token: token);
 
             await CreateOrUpdateChatCardAsync(jsonFileName, model, cardJson, stored, chatId, stopwatch, token);
@@ -168,7 +165,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             await teamsManagerService.CheckOrInstallBotIsInTeam(teamId, token);
             var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
 
-            var stored = await cosmosMessageStore.FindByChannelAsync(jsonFileName, model.UniqueId, token);
+            var stored = await cosmosMessageStore.FindMessageByUniqueId(model.UniqueId, token);
             var cardJson = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamId, channelId, channelName, token);
 
             await CreateOrUpdateChannelCardAsync(jsonFileName, model, cardJson, stored, teamId, channelId, stopwatch, token);
@@ -181,7 +178,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
     }
 
     public async Task RemoveActionsFromCardAsync(string teamId, string channelId, string messageId, string[] actionsToRemove, CancellationToken token)
-    {
+    {       
         try
         {
             var stopwatch = Stopwatch.StartNew();
@@ -277,7 +274,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         }
     }
 
-    private async Task CreateOrUpdateChatCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string chatId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
+    private Task CreateOrUpdateChatCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string chatId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
     {
         var activity = new Activity
         {
@@ -301,7 +298,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             conversationReference.ActivityId = idFromOldMessage;
         }
 
-        await adapter.ContinueConversationAsync(
+        return adapter.ContinueConversationAsync(
             AgentClaims.CreateIdentity(_clientId),
             conversationReference,
             async (turnContext, cancellationToken) =>
@@ -346,7 +343,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    private async Task CreateOrUpdateChannelCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
+    private Task CreateOrUpdateChannelCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
     {
         var activity = new Activity
         {
@@ -370,7 +367,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             conversationReference.ActivityId = idFromOldMessage;
         }
 
-        await adapter.ContinueConversationAsync(
+        return adapter.ContinueConversationAsync(
             AgentClaims.CreateIdentity(_clientId),
             conversationReference,
             async (turnContext, cancellationToken) =>

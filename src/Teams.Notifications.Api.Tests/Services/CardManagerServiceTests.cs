@@ -46,7 +46,7 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam("teamId", CancellationToken.None)).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync("file.json", "uid", CancellationToken.None))
+            .Setup(x => x.FindMessageByUniqueId("uid", CancellationToken.None))
             .ReturnsAsync(ChannelDoc("teamId", "channelId", "file.json", "uid", "msgId"));
         _adapterMock
             .Setup(x => x.ContinueConversationAsync(
@@ -77,7 +77,7 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.FindMessageByUniqueId(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((StoredMessage?)null);
 
         // Act & Assert
@@ -94,7 +94,7 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam("teamId", CancellationToken.None)).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync("file.json", "uid", CancellationToken.None))
+            .Setup(x => x.FindMessageByUniqueId("uid", CancellationToken.None))
             .ReturnsAsync((StoredMessage?)null);
 
         _adapterMock
