@@ -32,9 +32,6 @@
 	<ItemGroup>
 		<ProjectReference Include="..\Teams.Notifications.Api\Teams.Notifications.Api.csproj" />
 	</ItemGroup>
-	<Target Name="RunNswag" BeforeTargets="BeforeBuild">
-		<Exec Command="nswag run teams-api.nswag" WorkingDirectory="$(MSBuildProjectDirectory)" />
-	</Target>
 	<PropertyGroup>
 		<RunSettingsFilePath>$(MSBuildProjectDirectory)\runsettings\local.runsettings</RunSettingsFilePath>
 	</PropertyGroup>

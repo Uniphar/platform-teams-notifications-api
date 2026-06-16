@@ -21,6 +21,7 @@ global using System.Threading.Tasks;
 global using AdaptiveCards;
 global using Azure.Core;
 global using Azure.Identity;
+global using Azure.Messaging.ServiceBus;
 global using Microsoft.Agents.Authentication;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Builder.App;
@@ -42,6 +43,7 @@ global using Microsoft.AspNetCore.OpenApi;
 global using Microsoft.Azure.Cosmos;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Options;
 global using Microsoft.Graph.Beta;
@@ -60,6 +62,8 @@ global using Teams.Notifications.Api;
 global using Teams.Notifications.Api.Action.Models;
 global using Teams.Notifications.Api.Agents;
 global using Teams.Notifications.Api.Agents.CardHandler;
+global using Teams.Notifications.Api.BackgroundServices;
+global using Teams.Notifications.Api.Commands;
 global using Teams.Notifications.Api.DelegatingHandlers;
 global using Teams.Notifications.Api.Extensions;
 global using Teams.Notifications.Api.Filters;
@@ -138,11 +142,8 @@ builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
-builder
-    .Services
-    .AddHttpClient("service-now-api", client => client.BaseAddress = apiUrl)
-    .AddStandardResilienceHandler();
-builder.Services.AddTransient<IServiceNowApiService, ServiceNowApiService>();
+builder.Services.AddSingleton<ITeamsCardEventPublisher, ServiceBusTeamsCardEventPublisher>();
+builder.Services.AddHostedService<TeamsCardEventsTopicInitializerBackgroundService>();
 
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
 

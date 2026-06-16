@@ -2,7 +2,7 @@ using AdaptiveCard = AdaptiveCards.AdaptiveCard;
 
 namespace Teams.Notifications.Api.Services;
 
-public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, ICosmosMessageStore cosmosMessageStore, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry) : ICardManagerService
+public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerService teamsManagerService, ICosmosMessageStore cosmosMessageStore, IConfiguration config, ILogger<CardManagerService> logger, ICustomEventTelemetryClient telemetry, ITeamsCardEventPublisher cardEventPublisher) : ICardManagerService
 {
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
     private readonly string _tenantId = config["AZURE_TENANT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_TENANT_ID");
@@ -44,6 +44,15 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                                 ["UniqueId"] = uniqueId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
+
+                        try
+                        {
+                            await cardEventPublisher.PublishCardDeletedAsync(uniqueId, cancellationToken);
+                        }
+                        catch (Exception publishEx)
+                        {
+                            logger.LogError(publishEx, "Failed to publish CardDeleted event for UniqueId {UniqueId}", uniqueId);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -166,9 +175,26 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
 
             var stored = await cosmosMessageStore.FindMessageByUniqueId(model.UniqueId, token);
+            var isCreate = stored is null;
             var cardJson = await CreateCardFromTemplateAsync(jsonFileName, file, model, teamId, channelId, channelName, token);
 
-            await CreateOrUpdateChannelCardAsync(jsonFileName, model, cardJson, stored, teamId, channelId, stopwatch, token);
+            var messageId = await CreateOrUpdateChannelCardAsync(jsonFileName, model, cardJson, stored, teamId, channelId, stopwatch, token);
+
+            var cardType = Path.GetFileNameWithoutExtension(jsonFileName);
+            var hasActionableFile = file is not null;
+            var deepLink = BuildTeamsDeepLink(teamId, channelId, messageId);
+
+            try
+            {
+                if (isCreate)
+                    await cardEventPublisher.PublishCardCreatedAsync(model.UniqueId, deepLink, cardType, hasActionableFile, token);
+                else
+                    await cardEventPublisher.PublishCardUpdatedAsync(model.UniqueId, deepLink, cardType, hasActionableFile, token);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to publish Teams card event for UniqueId {UniqueId}", model.UniqueId);
+            }
         }
         catch (Exception ex)
         {
@@ -178,7 +204,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
     }
 
     public async Task RemoveActionsFromCardAsync(string teamId, string channelId, string messageId, string[] actionsToRemove, CancellationToken token)
-    {       
+    {
         try
         {
             var stopwatch = Stopwatch.StartNew();
@@ -200,7 +226,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 throw new InvalidOperationException(errorMsg);
             }
 
-            // Remove all actions that match the verbs
             var actionsRemoved = 0;
             foreach (var actionVerb in actionsToRemove)
             {
@@ -307,7 +332,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 {
                     if (string.IsNullOrWhiteSpace(idFromOldMessage))
                     {
-                        // Create new message
                         var newResult = await turnContext.SendActivityAsync(activity, cancellationToken);
                         var persistedMessageId = ResolveMessageId(newResult.Id, idFromOldMessage, "send", fileName);
                         await UpsertChatStoredMessageAsync(persistedMessageId, chatId, fileName, model.UniqueId, card, null, cancellationToken);
@@ -321,7 +345,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                     }
                     else
                     {
-                        // Update existing message
                         var updateResult = await turnContext.UpdateActivityAsync(activity, cancellationToken);
                         var persistedMessageId = ResolveMessageId(updateResult.Id, idFromOldMessage, "update", fileName);
                         await UpsertChatStoredMessageAsync(persistedMessageId, chatId, fileName, model.UniqueId, card, stored, cancellationToken);
@@ -343,7 +366,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             token);
     }
 
-    private Task CreateOrUpdateChannelCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
+    private async Task<string> CreateOrUpdateChannelCardAsync<T>(string fileName, T model, string card, StoredMessage? stored, string teamId, string channelId, Stopwatch stopwatch, CancellationToken token) where T : BaseTemplateModel
     {
         var activity = new Activity
         {
@@ -367,7 +390,9 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             conversationReference.ActivityId = idFromOldMessage;
         }
 
-        return adapter.ContinueConversationAsync(
+        string? resultMessageId = null;
+
+        await adapter.ContinueConversationAsync(
             AgentClaims.CreateIdentity(_clientId),
             conversationReference,
             async (turnContext, cancellationToken) =>
@@ -376,33 +401,31 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 {
                     if (string.IsNullOrWhiteSpace(idFromOldMessage))
                     {
-                        // Create new message
                         var newResult = await turnContext.SendActivityAsync(activity, cancellationToken);
-                        var persistedMessageId = ResolveMessageId(newResult.Id, idFromOldMessage, "send", fileName);
-                        await UpsertChannelStoredMessageAsync(persistedMessageId, teamId, channelId, fileName, model.UniqueId, card, null, cancellationToken);
+                        resultMessageId = ResolveMessageId(newResult.Id, idFromOldMessage, "send", fileName);
+                        await UpsertChannelStoredMessageAsync(resultMessageId, teamId, channelId, fileName, model.UniqueId, card, null, cancellationToken);
 
                         telemetry.TrackEvent("ChannelNewMessage",
                             new()
                             {
                                 ["TeamId"] = teamId,
                                 ["ChannelId"] = channelId,
-                                ["MessageId"] = persistedMessageId,
+                                ["MessageId"] = resultMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
                     else
                     {
-                        // Update existing message
                         var updateResult = await turnContext.UpdateActivityAsync(activity, cancellationToken);
-                        var persistedMessageId = ResolveMessageId(updateResult.Id, idFromOldMessage, "update", fileName);
-                        await UpsertChannelStoredMessageAsync(persistedMessageId, teamId, channelId, fileName, model.UniqueId, card, stored, cancellationToken);
+                        resultMessageId = ResolveMessageId(updateResult.Id, idFromOldMessage, "update", fileName);
+                        await UpsertChannelStoredMessageAsync(resultMessageId, teamId, channelId, fileName, model.UniqueId, card, stored, cancellationToken);
 
                         telemetry.TrackEvent("ChannelUpdateMessage",
                             new()
                             {
                                 ["TeamId"] = teamId,
                                 ["ChannelId"] = channelId,
-                                ["MessageId"] = persistedMessageId,
+                                ["MessageId"] = resultMessageId,
                                 ["Duration"] = stopwatch.ElapsedMilliseconds
                             });
                     }
@@ -414,6 +437,8 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                 }
             },
             token);
+
+        return resultMessageId!;
     }
 
     public async Task<string> CreateCardFromTemplateAsync<T>(string jsonFileName, IFormFile? formFile, T model, string? teamId = null, string? channelId = null, string? channelName = null, CancellationToken token = default) where T : BaseTemplateModel
@@ -444,7 +469,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
                             });
                     }
 
-                    // set file url
                     fileUrl = result.Url;
                 }
                 catch (Exception ex)
@@ -454,8 +478,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             }
         }
 
-        // replace all props with the values
-        //if file prop is empty, it will just leave the value out
         foreach (var (propertyName, type) in props)
         {
             text = text.FindPropAndReplace(model,
@@ -474,7 +496,6 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
 
         var item = AdaptiveCard.FromJson(text).Card;
         if (item == null) throw new ArgumentNullException(nameof(jsonFileName));
-        // some solution to be able to track a unique id across the channel
         item.Body.Add(new AdaptiveTextBlock(jsonFileName)
         {
             Color = AdaptiveTextColor.Accent,
@@ -529,6 +550,9 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         };
         return cosmosMessageStore.UpsertAsync(doc, token);
     }
+
+    private string BuildTeamsDeepLink(string teamId, string channelId, string messageId)
+        => $"https://teams.microsoft.com/l/message/{Uri.EscapeDataString(channelId)}/{Uri.EscapeDataString(messageId)}?groupId={Uri.EscapeDataString(teamId)}&tenantId={Uri.EscapeDataString(_tenantId)}";
 
     private ConversationReference GetConversationReference(string channelId) =>
         new()

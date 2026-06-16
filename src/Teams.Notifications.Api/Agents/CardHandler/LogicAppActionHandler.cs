@@ -1,4 +1,4 @@
-﻿namespace Teams.Notifications.Api.Agents.CardHandler;
+namespace Teams.Notifications.Api.Agents.CardHandler;
 
 internal static class LogicAppActionHandler
 {
@@ -9,7 +9,7 @@ internal static class LogicAppActionHandler
         ITeamsManagerService teamsManagerService,
         IFrontgateApiService frontgateApiService,
         ICardManagerService cardManagerService,
-        IServiceNowApiService serviceNowApiService,
+        ITeamsCardEventPublisher teamsCardEventPublisher,
         CancellationToken cancellationToken
     )
     {
@@ -58,6 +58,7 @@ internal static class LogicAppActionHandler
                     initial_display_name = teamName,
                     storage_folder = $"/{channelName}/error/"
                 };
+
                 // Upload the file to the external API
                 using var uploadResponse = await frontgateApiService.UploadFileAsync(model.PostOriginalBlobUri ?? string.Empty, fileInfo, cancellationToken);
 
@@ -65,18 +66,18 @@ internal static class LogicAppActionHandler
                 {
                     await cardManagerService.RemoveActionsFromCardAsync(teamId, channelId, messageId, ["Process"], cancellationToken);
 
-                    // Resolve the ServiceNow incident — best-effort, do not fail the card action if SN is unavailable
+                    // Publish resolved event via Service Bus — best-effort, do not fail the card action if SB is unavailable
                     if (!string.IsNullOrWhiteSpace(model.PostUniqueId))
                     {
                         try
                         {
-                            await serviceNowApiService.ResolveIncidentAsync(model.PostUniqueId, cancellationToken);
-                            telemetry.TrackEvent("ServiceNowIncidentResolved", new() { ["UniqueId"] = model.PostUniqueId });
+                            await teamsCardEventPublisher.PublishCardResolvedAsync(model.PostUniqueId, cancellationToken);
+                            telemetry.TrackEvent("TeamsCardResolvedPublished", new() { ["UniqueId"] = model.PostUniqueId });
                         }
-                        catch (Exception snEx)
+                        catch (Exception ex)
                         {
-                            logger.LogError(snEx, "Failed to resolve ServiceNow incident for UniqueId {UniqueId}", model.PostUniqueId);
-                            telemetry.TrackEvent("ServiceNowResolveIncidentFailed", new() { ["UniqueId"] = model.PostUniqueId, ["Error"] = snEx.Message });
+                            logger.LogError(ex, "Failed to publish TeamsCardResolved for UniqueId {UniqueId}", model.PostUniqueId);
+                            telemetry.TrackEvent("TeamsCardResolvedPublishFailed", new() { ["UniqueId"] = model.PostUniqueId, ["Error"] = ex.Message });
                         }
                     }
 
