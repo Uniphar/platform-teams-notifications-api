@@ -3,7 +3,21 @@ replicaCount: 1
 revisionHistoryLimit: 2
 nameOverride: platform-teams-notification-api
 appPath: /platform-teams-notification-api
-healthUrl: /platform-teams-notification-api/health
+startupProbe:
+  path: /platform-teams-notification-api/health
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 30
+livenessProbe:
+  path: /platform-teams-notification-api/live
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbe:
+  path: /platform-teams-notification-api/health
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
 environment: TBD
 env:
   ASPNETCORE_ENVIRONMENT: "dev"
