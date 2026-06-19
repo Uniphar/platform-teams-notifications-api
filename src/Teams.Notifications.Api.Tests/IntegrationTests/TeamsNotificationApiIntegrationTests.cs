@@ -12,6 +12,7 @@ namespace Teams.Notifications.Api.Tests.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class TeamsNotificationApiIntegrationTests
 {
+    private static string _subscriptionName = string.Empty;
     private const string CardEventsTopicName = "platform-teams-notification-card-events";
     private const string DevTeamName = "DAWN - Integrations Errors Dev";
     private const string TestTeamName = "DAWN - Integrations Errors Test";
@@ -55,13 +56,15 @@ public sealed class TeamsNotificationApiIntegrationTests
 
         _client = new(httpClient);
         _channelTeamName = env == "test" ? TestTeamName : DevTeamName;
+        var subscriptionName = $"teams-tests-sub-{Guid.NewGuid().ToString("N")[..5]}";
+        _subscriptionName = await CreateTemporaryCardEventsSubscriptionAsync(subscriptionName, _cancellationToken);
     }
 
     [TestMethod]
     public async Task IntegrationSuiteError_CanBeAddedAndRemoved_EndToEnd()
     {
         var uniqueId = $"int-test-{Guid.NewGuid():N}";
-        var subscriptionName = await CreateTemporaryCardEventsSubscriptionAsync(uniqueId, _cancellationToken);
+
         var model = new IntegrationSuiteErrorRequest
         {
             UniqueId = uniqueId,
@@ -79,7 +82,7 @@ public sealed class TeamsNotificationApiIntegrationTests
         try
         {
             await _client.IntegrationSuiteErrorPOSTAsync(_channelTeamName, IntegrationSuiteChannelName, model, _cancellationToken);
-            await AssertCardEventPublishedAsync(subscriptionName, uniqueId, "TeamsCardCreated", _cancellationToken);
+            await AssertCardEventPublishedAsync(_subscriptionName, uniqueId, "TeamsCardCreated", _cancellationToken);
             await _client.IntegrationSuiteErrorGetsAnObject(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
 
             var card = await _client.IntegrationSuiteErrorGETAsync(uniqueId, _channelTeamName, IntegrationSuiteChannelName, _cancellationToken);
@@ -89,7 +92,6 @@ public sealed class TeamsNotificationApiIntegrationTests
         finally
         {
             await DeleteIfPresentAsync(() => _client.IntegrationSuiteErrorDELETEAsync(uniqueId, _channelTeamName, IntegrationSuiteChannelName, CancellationToken.None));
-            await DeleteSubscriptionIfPresentAsync(subscriptionName);
         }
 
         await _client.IntegrationSuiteErrorGetsEmpty(uniqueId, _channelTeamName, IntegrationSuiteChannelName, cancellationToken: _cancellationToken);
@@ -99,7 +101,6 @@ public sealed class TeamsNotificationApiIntegrationTests
     public async Task LogicAppError_CanBeAddedAndRemoved_EndToEnd()
     {
         var uniqueId = $"int-test-{Guid.NewGuid():N}";
-        var subscriptionName = await CreateTemporaryCardEventsSubscriptionAsync(uniqueId, _cancellationToken);
         var model = new LogicAppErrorRequest
         {
             UniqueId = uniqueId,
@@ -113,7 +114,7 @@ public sealed class TeamsNotificationApiIntegrationTests
         try
         {
             await _client.LogicAppErrorPOSTAsync(_channelTeamName, LogicAppChannelName, model, _cancellationToken);
-            await AssertCardEventPublishedAsync(subscriptionName, uniqueId, "TeamsCardCreated", _cancellationToken);
+            await AssertCardEventPublishedAsync(_subscriptionName, uniqueId, "TeamsCardCreated", _cancellationToken);
             await _client.LogicAppErrorGetsAnObject(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
 
             var card = await _client.LogicAppErrorGETAsync(uniqueId, _channelTeamName, LogicAppChannelName, _cancellationToken);
@@ -123,7 +124,6 @@ public sealed class TeamsNotificationApiIntegrationTests
         finally
         {
             await DeleteIfPresentAsync(() => _client.LogicAppErrorDELETEAsync(uniqueId, _channelTeamName, LogicAppChannelName, CancellationToken.None));
-            await DeleteSubscriptionIfPresentAsync(subscriptionName);
         }
 
         await _client.LogicAppErrorGetsEmpty(uniqueId, _channelTeamName, LogicAppChannelName, cancellationToken: _cancellationToken);
@@ -139,11 +139,9 @@ public sealed class TeamsNotificationApiIntegrationTests
         catch (ApiException ex) when (ex.StatusCode is 400 or 403 or 404) { }
     }
 
-    private static async Task<string> CreateTemporaryCardEventsSubscriptionAsync(string uniqueId, CancellationToken cancellationToken)
+    private static async Task<string> CreateTemporaryCardEventsSubscriptionAsync(string subscriptionName, CancellationToken cancellationToken)
     {
         EnsureServiceBusConfiguration();
-        var subscriptionName = $"teams-tests-{uniqueId[..Math.Min(20, uniqueId.Length)]}-{Guid.NewGuid():N}";
-        if (subscriptionName.Length > 50) subscriptionName = subscriptionName[..50];
 
         var adminClient = new ServiceBusAdministrationClient(_serviceBusNamespace, new DefaultAzureCredential());
         var options = new CreateSubscriptionOptions(CardEventsTopicName, subscriptionName)
@@ -183,10 +181,12 @@ public sealed class TeamsNotificationApiIntegrationTests
     {
         EnsureServiceBusConfiguration();
         var client = new ServiceBusClient(_serviceBusNamespace, new DefaultAzureCredential());
-        var receiver = client.CreateReceiver(CardEventsTopicName, subscriptionName, new ServiceBusReceiverOptions
-        {
-            ReceiveMode = ServiceBusReceiveMode.ReceiveAndDelete
-        });
+        var receiver = client.CreateReceiver(CardEventsTopicName,
+            subscriptionName,
+            new()
+            {
+                ReceiveMode = ServiceBusReceiveMode.PeekLock
+            });
 
         var timeoutAt = DateTimeOffset.UtcNow.AddMinutes(2);
         while (DateTimeOffset.UtcNow < timeoutAt)
