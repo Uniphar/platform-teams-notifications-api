@@ -21,6 +21,7 @@ global using System.Threading.Tasks;
 global using AdaptiveCards;
 global using Azure.Core;
 global using Azure.Identity;
+global using Azure.Messaging.ServiceBus;
 global using Microsoft.Agents.Authentication;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Builder.App;
@@ -39,8 +40,10 @@ global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApplicationModels;
 global using Microsoft.AspNetCore.OpenApi;
+global using Microsoft.Azure.Cosmos;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Hosting;
 global using Microsoft.Extensions.Logging;
 global using Microsoft.Extensions.Options;
 global using Microsoft.Graph.Beta;
@@ -54,10 +57,13 @@ global using Microsoft.IdentityModel.Validators;
 global using Microsoft.Kiota.Abstractions;
 global using Microsoft.OpenApi;
 global using Polly;
+global using Polly.Retry;
 global using Teams.Notifications.Api;
 global using Teams.Notifications.Api.Action.Models;
 global using Teams.Notifications.Api.Agents;
 global using Teams.Notifications.Api.Agents.CardHandler;
+global using Teams.Notifications.Api.BackgroundServices;
+global using Teams.Notifications.Api.Commands;
 global using Teams.Notifications.Api.DelegatingHandlers;
 global using Teams.Notifications.Api.Extensions;
 global using Teams.Notifications.Api.Filters;
@@ -72,7 +78,6 @@ global using Attachment = Microsoft.Agents.Core.Models.Attachment;
 global using IMiddleware = Microsoft.Agents.Builder.IMiddleware;
 global using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 global using WebApplication = Microsoft.AspNetCore.Builder.WebApplication;
-global using Microsoft.Azure.Cosmos;
 
 
 const string appPathPrefix = "platform-teams-notification-api";
@@ -100,16 +105,11 @@ if (environment == "local") environmentSuffix = ".dev";
 var apiUrl = new Uri($"https://api{environmentSuffix}.uniphar.ie/");
 
 
-var jitterRandomizer = new Random();
 builder.Services.AddHttpClient();
 builder
     .Services
     .AddHttpClient("frontgate-api", client => client.BaseAddress = apiUrl)
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(jitterRandomizer.Next(0, 100))))
-    .AddTransientHttpErrorPolicy(policyBuilder => policyBuilder.CircuitBreakerAsync(
-        5,
-        TimeSpan.FromSeconds(30)
-    ));
+    .AddStandardResilienceHandler();
 // will use workload if available
 if (!string.IsNullOrWhiteSpace(clientSecret))
 {
@@ -142,6 +142,8 @@ builder.Services.AddTransient<RequestAndResponseLoggerHandler>();
 builder.Services.AddTransient<ICardManagerService, CardManagerService>();
 builder.Services.AddTransient<ITeamsManagerService, TeamsManagerService>();
 builder.Services.AddTransient<IFrontgateApiService, FrontgateApiService>();
+builder.Services.AddSingleton<ITeamsCardEventPublisher, ServiceBusTeamsCardEventPublisher>();
+builder.Services.AddHostedService<TeamsCardEventsTopicInitializerBackgroundService>();
 
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
 
@@ -151,7 +153,13 @@ builder.Services.AddSingleton(sp =>
     return new CosmosClient(connectionString,
         new()
         {
-            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false)
+            HttpClientFactory = () => new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }, false),
+            SerializerOptions = new()
+            {
+                Indented = true,
+                IgnoreNullValues = true,
+                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+            }
         });
 });
 builder.Services.AddSingleton<ICosmosMessageStore, CosmosMessageStore>();
