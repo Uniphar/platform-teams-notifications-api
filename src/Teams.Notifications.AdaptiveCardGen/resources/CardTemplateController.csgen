@@ -8,13 +8,16 @@ namespace Teams.Notifications.Api.Controllers;
 [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
 public class {{name}}Controller : ControllerBase
 {
-    private const string jsonFileName = "{{name}}.json";
+    private const string JsonFileName = "{{name}}.json";
     private readonly ICardManagerService _cardManagerService;
     private readonly ICustomEventTelemetryClient _telemetry;
-    public {{name}}Controller(ICardManagerService cardManagerService, ICustomEventTelemetryClient telemetry)
+    private readonly ILogger<{{name}}Controller> _logger;
+    
+    public {{name}}Controller(ICardManagerService cardManagerService, ICustomEventTelemetryClient telemetry, ILogger<{{name}}Controller> logger)
     {
         _cardManagerService = cardManagerService;
         _telemetry = telemetry;
+        _logger = logger;
     }
 
     /// <summary>
@@ -24,16 +27,31 @@ public class {{name}}Controller : ControllerBase
     /// <param name="user">User you want to send a card to</param>
     /// <param name="cancellationToken">CancellationToken for when the application stops, mostly used for the bot</param>
     [HttpPost("{{name}}ToUser")]
-    // with swagger response you can give it a description
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> PostUser({{name}}Model model, [FromQuery(Name = "UserName")] string user, CancellationToken cancellationToken)
     {
-        using (_telemetry.WithProperties([new("CreateOrUpdateCardUser", "{{name}}Model")]))
-            await _cardManagerService.CreateOrUpdateAsync(jsonFileName, model, user, cancellationToken);
+        try
+        {
+            using (_telemetry.WithProperties([
+                new("CreateOrUpdateCardUser", "{{name}}Model"),
+                new("UserName", user)
+            ]))
+                await _cardManagerService.CreateOrUpdateAsync(JsonFileName, model, user, cancellationToken);
             return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Argument validation failed for PostUser endpoint with user '{User}'", user);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Operation failed for PostUser endpoint with user '{User}'", user);
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>
@@ -44,28 +62,61 @@ public class {{name}}Controller : ControllerBase
     /// <param name="channelName">Channel you want to send the message into</param>
     /// <param name="cancellationToken">CancellationToken for when the application stops, mostly used for the bot</param>
     [HttpPost("{{name}}")]
-    // with swagger response you can give it a description
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> Post({{name}}Model model, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
-        using (_telemetry.WithProperties([new("CreateOrUpdateCardForModel", "{{name}}Model")]))
-            await _cardManagerService.CreateOrUpdateAsync(jsonFileName, null, model, teamName, channelName, cancellationToken);
+        try
+        {
+            using (_telemetry.WithProperties([
+                new("CreateOrUpdateCardForModel", "{{name}}Model"),
+                new("TeamName", teamName),
+                new("ChannelName", channelName)
+            ]))
+                await _cardManagerService.CreateOrUpdateAsync(JsonFileName, null, model, teamName, channelName, cancellationToken);
             return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Argument validation failed for Post endpoint with team '{Team}' and channel '{Channel}'", teamName, channelName);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Operation failed for Post endpoint with team '{Team}' and channel '{Channel}'", teamName, channelName);
+            return BadRequest(ex.Message);
+        }
     }
+
     [HttpPost("{{name}}WithFile")]
-    // with swagger response you can give it a description
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> PostWithFile([FromQuery] {{name}}Model model, IFormFile file, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
-        using (_telemetry.WithProperties([new("CreateOrUpdateCardForModel", "{{name}}Model")]))
-            await _cardManagerService.CreateOrUpdateAsync(jsonFileName, file, model, teamName, channelName, cancellationToken);
+        try
+        {
+            using (_telemetry.WithProperties([
+                new("CreateOrUpdateCardForModel", "{{name}}Model"),
+                new("TeamName", teamName),
+                new("ChannelName", channelName)
+            ]))
+                await _cardManagerService.CreateOrUpdateAsync(JsonFileName, file, model, teamName, channelName, cancellationToken);
             return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Argument validation failed for PostWithFile endpoint with team '{Team}' and channel '{Channel}'", teamName, channelName);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Operation failed for PostWithFile endpoint with team '{Team}' and channel '{Channel}'", teamName, channelName);
+            return BadRequest(ex.Message);
+        }
     }
 
     /// <summary>
@@ -77,28 +128,64 @@ public class {{name}}Controller : ControllerBase
     /// <param name="cancellationToken">CancellationToken for when the application stops, mostly used for the bot</param>
     [HttpDelete("{{name}}")]
     [Produces("application/json")]
-    // with swagger response you can give it a description
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IActionResult> Delete(string uniqueId, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
-       using (_telemetry.WithProperties([new("DeleteCardForModel", "{{name}}Model")]))
-           await _cardManagerService.DeleteCardAsync(jsonFileName, uniqueId, teamName, channelName, cancellationToken);
-           return Ok();
+        try
+        {
+            using (_telemetry.WithProperties([
+                new("DeleteCardForModel", "{{name}}Model"),
+                new("UniqueId", uniqueId),
+                new("TeamName", teamName),
+                new("ChannelName", channelName)
+            ]))
+                await _cardManagerService.DeleteCardAsync(JsonFileName, uniqueId, teamName, channelName, cancellationToken);
+            return Ok();
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Argument validation failed for Delete endpoint with uniqueId '{UniqueId}', team '{Team}' and channel '{Channel}'", uniqueId, teamName, channelName);
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Operation failed for Delete endpoint with uniqueId '{UniqueId}', team '{Team}' and channel '{Channel}'", uniqueId, teamName, channelName);
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("{{name}}")]
     [ProducesResponseType<string>(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(void), StatusCodes.Status404NotFound)]
+    [ProducesResponseType<string>(StatusCodes.Status400BadRequest)]
     [Authorize(Policy = "Teams.Notifications.Api.Writer", AuthenticationSchemes = "NotificationScheme")]
     public async Task<IResult> Get(string uniqueId, [FromQuery(Name = "TeamName")] string teamName, [FromQuery(Name = "ChannelName")] string channelName, CancellationToken cancellationToken)
     {
-        using (_telemetry.WithProperties([new("GetCardForModel", "{{name}}Model")]))
+        try
         {
-            var card = await _cardManagerService.GetCardAsync(jsonFileName, uniqueId, teamName, channelName, cancellationToken);
-            return card == null ? Results.NotFound() : Results.Ok(card);
+            using (_telemetry.WithProperties([
+                new("GetCardForModel", "{{name}}Model"),
+                new("UniqueId", uniqueId),
+                new("TeamName", teamName),
+                new("ChannelName", channelName)
+            ]))
+            {
+                var card = await _cardManagerService.GetCardAsync(JsonFileName, uniqueId, teamName, channelName, cancellationToken);
+                return card == null ? Results.NotFound() : Results.Ok(card);
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogError(ex, "Argument validation failed for Get endpoint with uniqueId '{UniqueId}', team '{Team}' and channel '{Channel}'", uniqueId, teamName, channelName);
+            return Results.BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Operation failed for Get endpoint with uniqueId '{UniqueId}', team '{Team}' and channel '{Channel}'", uniqueId, teamName, channelName);
+            return Results.BadRequest(ex.Message);
         }
     }
 }

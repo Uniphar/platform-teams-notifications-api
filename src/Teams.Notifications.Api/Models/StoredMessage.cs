@@ -1,39 +1,36 @@
 namespace Teams.Notifications.Api.Models;
 
-public sealed class StoredMessage
+public sealed record StoredMessage
 {
-    /// <summary>Graph message id. Document id within the partition.</summary>
+    /// <summary>Cosmos document id (unique notification id).</summary>
     [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
+    public required string Id { get; init; }
 
-    /// <summary>Partition key: <c>chat:{chatId}</c> or <c>channel:{teamId}:{channelId}</c>.</summary>
-    [JsonPropertyName("pk")]
-    public string PartitionKey { get; set; } = string.Empty;
+    /// <summary>Graph message id returned by Teams after sending.</summary>
+    [JsonPropertyName("messageId")]
+    public string? MessageId { get; init; }
 
     [JsonPropertyName("uniqueId")]
-    public string UniqueId { get; set; } = string.Empty;
+    public required string UniqueId { get; init; }
 
     [JsonPropertyName("jsonFileName")]
-    public string JsonFileName { get; set; } = string.Empty;
+    public required string JsonFileName { get; init; }
 
     [JsonPropertyName("chatId")]
-    public string? ChatId { get; set; }
+    public string? ChatId { get; init; }
 
     [JsonPropertyName("teamId")]
-    public string? TeamId { get; set; }
+    public string? TeamId { get; init; }
 
     [JsonPropertyName("channelId")]
-    public string? ChannelId { get; set; }
+    public string? ChannelId { get; init; }
 
     [JsonPropertyName("cardJson")]
-    public string CardJson { get; set; } = string.Empty;
+    public required string CardJson { get; init; }
 
     [JsonPropertyName("createdAt")]
-    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; init; }
 
     [JsonPropertyName("updatedAt")]
-    public DateTimeOffset UpdatedAt { get; set; }
-
-    public static string ChatPartition(string chatId) => $"chat:{chatId}";
-    public static string ChannelPartition(string teamId, string channelId) => $"channel:{teamId}:{channelId}";
+    public DateTimeOffset UpdatedAt { get; init; }
 }

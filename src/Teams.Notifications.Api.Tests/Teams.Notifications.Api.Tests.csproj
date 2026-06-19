@@ -8,6 +8,7 @@
 		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 	</PropertyGroup>
 	<ItemGroup>
+		<PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="*" />
 		<PackageReference Include="Azure.Identity" Version="*" />
 		<PackageReference Include="GitHubActionsTestLogger" Version="*">
 			<PrivateAssets>all</PrivateAssets>

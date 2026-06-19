@@ -1,14 +1,19 @@
 ﻿namespace Teams.Notifications.Api.Services;
 
-public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config) : ITeamsManagerService
+public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration config, ILogger<TeamsManagerService> logger) : ITeamsManagerService
 {
     /// <summary>
     ///     SharePoint/Graph has eventual consistency — WebUrl can be null immediately after upload
     ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
     /// </summary>
-    private static readonly AsyncPolicy<DriveItem?> _webUrlRetryPolicy = Policy
-        .HandleResult<DriveItem?>(item => item?.WebUrl is null)
-        .WaitAndRetryAsync(4, attempt => TimeSpan.FromMilliseconds(500 * Math.Pow(2, attempt - 1)));
+    private static readonly ResiliencePipeline<DriveItem?> _webUrlRetryPolicy = new ResiliencePipelineBuilder<DriveItem?>()
+        .AddRetry(new RetryStrategyOptions<DriveItem?>
+        {
+            ShouldHandle = new PredicateBuilder<DriveItem?>().HandleResult(item => item?.WebUrl is null),
+            MaxRetryAttempts = 4,
+            DelayGenerator = args => ValueTask.FromResult<TimeSpan?>(TimeSpan.FromMilliseconds(500 * Math.Pow(2, args.AttemptNumber)))
+        })
+        .Build();
 
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
@@ -108,7 +113,13 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             },
             token);
 
-        if (groups is not { Value: [{ Id: var teamId }] }) throw new InvalidOperationException($"Team with name {teamName} does not exist");
+        if (groups is not { Value: [{ Id: var teamId }] })
+        {
+            var errorMsg = $"Team with name {teamName} does not exist";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
         return teamId ?? throw new InvalidOperationException($"Team with name {teamName} does not exist");
     }
 
@@ -124,7 +135,13 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
                 },
                 token);
 
-        if (channels is not { Value: [{ Id: var channelId }] }) throw new InvalidOperationException($"Channel with name {channelName} does not exist");
+        if (channels is not { Value: [{ Id: var channelId }] })
+        {
+            var errorMsg = $"Channel with name {channelName} does not exist in team {teamId}";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
         return channelId ?? throw new InvalidOperationException($"Channel with name {channelName} does not exist");
     }
 
@@ -151,7 +168,14 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             .Users[userPrincipalName]
             .GetAsync(request => { request.QueryParameters.Select = ["id"]; }, token);
 
-        return user?.Id ?? throw new InvalidOperationException($"User with principal name {userPrincipalName} not found");
+        if (user?.Id == null)
+        {
+            var errorMsg = $"User with principal name {userPrincipalName} not found";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        return user.Id;
     }
 
     public async Task<string?> GetOrInstallChatAppIdAsync(string aadObjectId, CancellationToken token)
@@ -216,17 +240,27 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
     public async Task<(bool Success, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        if (filesFolder == null) throw new InvalidOperationException("No files folder found for the channel");
+        if (filesFolder == null)
+        {
+            var errorMsg = "No files folder found for the channel";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
 
         var driveId = filesFolder.ParentReference?.DriveId;
-        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
+        if (driveId == null)
+        {
+            var errorMsg = "No drive found for the channel";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
 
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
         var content = item.ItemWithPath(fileLocation).Content;
         await content.PutAsync(fileStream, cancellationToken: token);
         var itemFound = await _webUrlRetryPolicy.ExecuteAsync(
-            ct => item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
+            async ct => await item.ItemWithPath(fileLocation).GetAsync(cancellationToken: ct),
             token);
         // add web=1 to open in web view, this will make it possible to edit it in browser
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
@@ -236,9 +270,22 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
     {
         var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
         var driveId = filesFolder?.ParentReference?.DriveId;
-        if (driveId == null) throw new InvalidOperationException("No drive found for the channel");
+        if (driveId == null)
+        {
+            var errorMsg = "No drive found for the channel";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
         var item = await GetDriveItem(driveId, fileLocation, token);
-        return item?.Name ?? throw new InvalidOperationException("Name not found");
+        if (item?.Name == null)
+        {
+            var errorMsg = "Name not found";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        return item.Name;
     }
 
 
@@ -255,7 +302,14 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
                 token);
 
         var teamsApp = apps?.Value?.FirstOrDefault();
-        return teamsApp?.Id ?? throw new InvalidOperationException($"Teams app with client ID {_clientId} not found in app catalog");
+        if (teamsApp?.Id == null)
+        {
+            var errorMsg = $"Teams app with client ID {_clientId} not found in app catalog";
+            logger.LogError(errorMsg);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        return teamsApp.Id;
     }
 
     private async Task<DriveItem?> GetDriveItem(string driveId, string fileUrl, CancellationToken cancellationToken = default)

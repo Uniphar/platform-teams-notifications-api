@@ -1,6 +1,3 @@
-using System.Security.Claims;
-using Microsoft.Extensions.Logging;
-
 namespace Teams.Notifications.Api.Tests.Services;
 
 [TestClass]
@@ -12,12 +9,14 @@ public class CardManagerServiceTests
     private readonly Mock<ILogger<CardManagerService>> _loggerMock;
     private readonly Mock<ICosmosMessageStore> _messageStoreMock;
     private readonly Mock<ITeamsManagerService> _teamsManagerServiceMock;
+    private readonly Mock<ITeamsCardEventPublisher> _cardEventPublisherMock;
     private readonly Mock<ICustomEventTelemetryClient> _telemetryMock;
 
     public CardManagerServiceTests()
     {
         _adapterMock = new();
         _teamsManagerServiceMock = new();
+        _cardEventPublisherMock = new();
         _messageStoreMock = new();
         _configMock = new();
         _configMock.Setup(c => c["AZURE_CLIENT_ID"]).Returns("client-id");
@@ -26,13 +25,13 @@ public class CardManagerServiceTests
         _loggerMock = new();
     }
 
-    private CardManagerService CreateService() => new(_adapterMock.Object, _teamsManagerServiceMock.Object, _messageStoreMock.Object, _configMock.Object, _loggerMock.Object, _telemetryMock.Object);
+    private CardManagerService CreateService() => new(_adapterMock.Object, _teamsManagerServiceMock.Object, _messageStoreMock.Object, _configMock.Object, _loggerMock.Object, _telemetryMock.Object, _cardEventPublisherMock.Object);
 
     private static StoredMessage ChannelDoc(string teamId, string channelId, string jsonFileName, string uniqueId, string messageId) =>
         new()
         {
-            Id = messageId,
-            PartitionKey = StoredMessage.ChannelPartition(teamId, channelId),
+            Id = uniqueId,
+            MessageId = messageId,
             TeamId = teamId,
             ChannelId = channelId,
             JsonFileName = jsonFileName,
@@ -49,7 +48,7 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam("teamId", CancellationToken.None)).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync("teamId", "channelId", "file.json", "uid", CancellationToken.None))
+            .Setup(x => x.FindMessageByUniqueId("uid", CancellationToken.None))
             .ReturnsAsync(ChannelDoc("teamId", "channelId", "file.json", "uid", "msgId"));
         _adapterMock
             .Setup(x => x.ContinueConversationAsync(
@@ -80,7 +79,7 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam(It.IsAny<string>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.FindMessageByUniqueId(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((StoredMessage?)null);
 
         // Act & Assert
@@ -97,8 +96,14 @@ public class CardManagerServiceTests
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam("teamId", CancellationToken.None)).Returns(Task.CompletedTask);
         _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
         _messageStoreMock
-            .Setup(x => x.FindByChannelAsync("teamId", "channelId", "file.json", "uid", CancellationToken.None))
+            .Setup(x => x.FindMessageByUniqueId("uid", CancellationToken.None))
             .ReturnsAsync((StoredMessage?)null);
+        _messageStoreMock
+            .Setup(x => x.UpsertAsync(It.IsAny<StoredMessage>(), CancellationToken.None))
+            .Returns(Task.CompletedTask);
+        _cardEventPublisherMock
+            .Setup(x => x.PublishCardCreatedAsync("uid", It.IsAny<string>(), "WelcomeCard", false, CancellationToken.None))
+            .Returns(Task.CompletedTask);
 
         _adapterMock
             .Setup(x => x.ContinueConversationAsync(
@@ -106,7 +111,18 @@ public class CardManagerServiceTests
                 It.IsAny<ConversationReference>(),
                 It.IsAny<AgentCallbackHandler>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Returns(async (ClaimsIdentity _, ConversationReference _, AgentCallbackHandler callback, CancellationToken ct) =>
+            {
+                var turnContext = new Mock<ITurnContext>();
+                turnContext
+                    .Setup(t => t.SendActivityAsync(It.IsAny<IActivity>(), ct))
+                    .ReturnsAsync(new ResourceResponse("msg-1"));
+                turnContext
+                    .Setup(t => t.UpdateActivityAsync(It.IsAny<IActivity>(), ct))
+                    .ReturnsAsync(new ResourceResponse("msg-1"));
+
+                await callback(turnContext.Object, ct);
+            });
 
         // Act
         await service.CreateOrUpdateAsync("WelcomeCard.json", null, model, "team", "channel", CancellationToken.None);
@@ -118,6 +134,7 @@ public class CardManagerServiceTests
                 It.IsAny<AgentCallbackHandler>(),
                 CancellationToken.None),
             Times.Once);
+        _cardEventPublisherMock.Verify(x => x.PublishCardCreatedAsync("uid", It.IsAny<string>(), "WelcomeCard", false, CancellationToken.None), Times.Once);
     }
 
     [TestMethod]
@@ -168,16 +185,50 @@ public class CardManagerServiceTests
                     Assert.DoesNotContain("}}", textBlock.Text, "No template string should be found!, found: {0}", textBlock.Text);
                     break;
                 case AdaptiveFactSet adaptiveSet:
-                {
-                    foreach (var fact in adaptiveSet.Facts)
                     {
-                        Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                        Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                    }
+                        foreach (var fact in adaptiveSet.Facts)
+                        {
+                            Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
+                            Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
             }
+        }
+    }
+
+    [TestMethod]
+    public void ResolveMessageId_ReturnsFallback_WhenCandidateIsMissing()
+    {
+        // Arrange
+        var method = typeof(CardManagerService)
+            .GetMethod("ResolveMessageId", BindingFlags.NonPublic | BindingFlags.Static);
+
+        // Act
+        var result = method!.Invoke(null, new object?[] { null, "existing-id", "update", "WelcomeCard.json" }) as string;
+
+        // Assert
+        Assert.AreEqual("existing-id", result);
+    }
+
+    [TestMethod]
+    public void ResolveMessageId_Throws_WhenCandidateAndFallbackAreMissing()
+    {
+        // Arrange
+        var method = typeof(CardManagerService)
+            .GetMethod("ResolveMessageId", BindingFlags.NonPublic | BindingFlags.Static);
+
+        // Act / Assert
+        try
+        {
+            method!.Invoke(null, new object?[] { null, null, "update", "WelcomeCard.json" });
+            Assert.Fail("Expected ResolveMessageId to throw when both candidate and fallback ids are empty.");
+        }
+        catch (TargetInvocationException ex)
+        {
+            Assert.IsInstanceOfType<InvalidOperationException>(ex.InnerException);
+            Assert.Contains("did not return a valid message id", ex.InnerException!.Message);
         }
     }
 }

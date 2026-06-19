@@ -31,9 +31,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.*" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="*" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="*" />
-    <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="*" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="*" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="*" />
     <PackageReference Include="Microsoft.Graph.Beta" Version="*-*" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="*" />
     <PackageReference Include="Uniphar.Platform.Telemetry" Version="*" />
     <PackageReference Include="Microsoft.Bcl.Memory" Version="*" />
     <ProjectReference Include="..\Teams.Notifications.AdaptiveCardGen\Teams.Notifications.AdaptiveCardGen.csproj" OutputItemType="Analyzer" />
