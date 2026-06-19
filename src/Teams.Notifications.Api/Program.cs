@@ -222,7 +222,7 @@ builder.RegisterOpenTelemetry(appPathPrefix).Build();
 
 var app = builder.Build();
 await app.Services.GetRequiredService<ICosmosMessageStore>().EnsureContainerIsProvisioned();
-app.MapHealthChecks("/" + appPathPrefix + "/health");
+app.MapHealthChecks(appPathPrefix + "/health");
 app.MapOpenApi(appPathPrefix + "/swagger/{documentName}/openapi.json");
 app.UseSwaggerUI(c =>
 {
