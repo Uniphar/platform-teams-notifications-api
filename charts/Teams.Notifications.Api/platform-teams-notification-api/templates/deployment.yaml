@@ -33,28 +33,18 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          startupProbe:
-            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
-            httpGet:
-              path: {{ .Values.startupProbe.path }}
-              scheme: HTTP
-              port: 8080
           livenessProbe:
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            periodSeconds: 20
+            timeoutSeconds: 30
             httpGet:
-              path: {{ .Values.livenessProbe.path }}
+              path: {{ .Values.healthUrl }}
               scheme: HTTP
-              port: 8080
+              port: 8080         
           readinessProbe:
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            periodSeconds: 20
+            timeoutSeconds: 30
             httpGet:
-              path: {{ .Values.readinessProbe.path }}
+              path: {{ .Values.healthUrl }}
               scheme: HTTP
               port: 8080
           env:
