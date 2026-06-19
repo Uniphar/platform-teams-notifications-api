@@ -223,14 +223,15 @@ builder.Services.AddOpenApi(options =>
 // that state survives Agent restarts, and operate correctly
 // in a cluster of Agent instances.
 builder.Services.AddSingleton<IStorage, MemoryStorage>();
-
+const string healthUrl = appPathPrefix + "/health";
 // Configure OpenTelemetry
-builder.RegisterOpenTelemetry(appPathPrefix).Build();
+builder.RegisterOpenTelemetry(appPathPrefix).WithFilterExclusion([healthUrl])
+    .Build();
 
 
 var app = builder.Build();
 await app.Services.GetRequiredService<ICosmosMessageStore>().EnsureContainerIsProvisioned();
-app.MapHealthChecks(appPathPrefix + "/health");
+app.MapHealthChecks(healthUrl);
 app.MapOpenApi(appPathPrefix + "/swagger/{documentName}/openapi.json");
 app.UseSwaggerUI(c =>
 {
