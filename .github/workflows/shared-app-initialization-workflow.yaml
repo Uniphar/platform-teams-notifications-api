@@ -64,7 +64,6 @@ jobs:
             Initialize-PlatformTeamsNotificationApi `
               -Environment '${{ inputs.environment }}' `
               -SubscriptionId '${{ secrets.AZURE_SUBSCRIPTION_ID }}' `
-              -ServicePrincipalName '${{ inputs.SERVICE_PRINCIPAL_NAME }}' `
               -ResourceGroupName '${{ inputs.RESOURCE_GROUP_NAME }}' `
               -LogAnalyticsWorkspaceId '${{ inputs.LOG_ANALYTICS_WORKSPACE_ID }}'
           azPSVersion: "latest"
