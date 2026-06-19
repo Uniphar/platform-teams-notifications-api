@@ -7,6 +7,9 @@
 		<IsTestProject>true</IsTestProject>
 		<TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 	</PropertyGroup>
+  <Target Name="RunNswag" AfterTargets="BeforeBuild">
+    <Exec Command="nswag run teams-api.nswag" />    
+  </Target>
 	<ItemGroup>
 		<PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="*" />
 		<PackageReference Include="Azure.Identity" Version="*" />
