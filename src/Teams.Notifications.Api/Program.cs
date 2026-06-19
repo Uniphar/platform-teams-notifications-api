@@ -225,7 +225,9 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddSingleton<IStorage, MemoryStorage>();
 const string healthUrl = appPathPrefix + "/health";
 // Configure OpenTelemetry
-builder.RegisterOpenTelemetry(appPathPrefix).WithFilterExclusion([healthUrl])
+builder
+    .RegisterOpenTelemetry(appPathPrefix)
+    .WithFilterExclusion([healthUrl])
     .Build();
 
 

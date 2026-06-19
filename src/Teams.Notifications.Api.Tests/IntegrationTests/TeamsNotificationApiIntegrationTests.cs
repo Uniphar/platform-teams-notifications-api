@@ -12,17 +12,23 @@ namespace Teams.Notifications.Api.Tests.IntegrationTests;
 [TestCategory("Integration")]
 public sealed class TeamsNotificationApiIntegrationTests
 {
-    private static string _subscriptionName = string.Empty;
     private const string CardEventsTopicName = "platform-teams-notification-card-events";
     private const string DevTeamName = "DAWN - Integrations Errors Dev";
     private const string TestTeamName = "DAWN - Integrations Errors Test";
     private const string LogicAppChannelName = "Logic App Errors";
     private const string IntegrationSuiteChannelName = "Integration Suite Errors";
+    private static string _subscriptionName = string.Empty;
 
     private static CancellationToken _cancellationToken;
     private static TeamsNotificationApi _client = null!;
     private static string _channelTeamName = string.Empty;
     private static string _serviceBusNamespace = string.Empty;
+
+    [ClassCleanup]
+    public static async Task ClassCleanup()
+    {
+        await DeleteSubscriptionIfPresentAsync(_subscriptionName);
+    }
 
     [ClassInitialize]
     public static async Task ClassInitialize(TestContext context)
@@ -206,11 +212,8 @@ public sealed class TeamsNotificationApiIntegrationTests
 
     private static void EnsureServiceBusConfiguration()
     {
-        if (string.IsNullOrWhiteSpace(_serviceBusNamespace))
-            Assert.Inconclusive("Service Bus namespace is not configured for integration tests. Configure 'FullyQualifiedNamespaceServiceBus' in appsettings/KeyVault.");
+        if (string.IsNullOrWhiteSpace(_serviceBusNamespace)) Assert.Inconclusive("Service Bus namespace is not configured for integration tests. Configure 'FullyQualifiedNamespaceServiceBus' in appsettings/KeyVault.");
     }
 
-    private static string ResolveServiceBusNamespace(IConfiguration config)
-        => config["FullyQualifiedNamespaceServiceBus"]
-           ?? string.Empty;
+    private static string ResolveServiceBusNamespace(IConfiguration config) => config["FullyQualifiedNamespaceServiceBus"] ?? string.Empty;
 }
