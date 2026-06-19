@@ -86,15 +86,20 @@ var environment = builder.Environment.EnvironmentName ?? throw new NoNullAllowed
 
 TokenCredential credentials = new DefaultAzureCredential();
 var kvName = environment == "local" ? "dev" : environment;
-// key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
-builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"),
-    credentials,
-    new CustomKeyVaultSecretManager([],
-        new Dictionary<string, string>
-        {
-            ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING",
-            ["COSMOS--CONNECTIONSTRING"] = "CosmosStore:ConnectionString"
-        }));
+// Load all secrets from Key Vault, then remap only the legacy keys this app expects.
+builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"), credentials);
+
+var keyVaultRemappedSettings = new Dictionary<string, string?>();
+var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
+
+var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
+if (!string.IsNullOrWhiteSpace(cosmosConnectionString))
+    keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
+
+if (keyVaultRemappedSettings.Count > 0)
+    builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
