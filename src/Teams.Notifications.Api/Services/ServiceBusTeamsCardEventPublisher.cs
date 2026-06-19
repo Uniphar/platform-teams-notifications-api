@@ -1,6 +1,3 @@
-using Azure.Messaging.ServiceBus;
-using Teams.Notifications.Api.Commands;
-
 namespace Teams.Notifications.Api.Services;
 
 public sealed class ServiceBusTeamsCardEventPublisher : ITeamsCardEventPublisher, IAsyncDisposable

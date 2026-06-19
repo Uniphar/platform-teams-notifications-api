@@ -21,7 +21,6 @@ global using System.Threading.Tasks;
 global using AdaptiveCards;
 global using Azure.Core;
 global using Azure.Identity;
-global using Azure.Messaging.ServiceBus;
 global using Microsoft.Agents.Authentication;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Builder.App;
@@ -63,7 +62,6 @@ global using Teams.Notifications.Api.Action.Models;
 global using Teams.Notifications.Api.Agents;
 global using Teams.Notifications.Api.Agents.CardHandler;
 global using Teams.Notifications.Api.BackgroundServices;
-global using Teams.Notifications.Api.Commands;
 global using Teams.Notifications.Api.DelegatingHandlers;
 global using Teams.Notifications.Api.Extensions;
 global using Teams.Notifications.Api.Filters;
@@ -185,7 +183,13 @@ builder
     });
 if (environment != "local")
     // key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
-    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"), credentials);
+    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"),
+        credentials,
+        new CustomKeyVaultSecretManager([],
+            new Dictionary<string, string>
+            {
+                ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+            }));
 
 builder.Services.AddSingleton<IMiddleware[]>(_ => [new CaptureMiddleware()]);
 builder.Services.AddEndpointsApiExplorer();

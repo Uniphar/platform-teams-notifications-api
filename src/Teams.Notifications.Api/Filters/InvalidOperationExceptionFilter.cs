@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Mvc.Filters;
-
 namespace Teams.Notifications.Api.Filters;
 
 public class InvalidOperationExceptionFilter(ICustomEventTelemetryClient telemetry, ILogger<InvalidOperationExceptionFilter> logger) : IExceptionFilter
