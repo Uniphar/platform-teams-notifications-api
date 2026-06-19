@@ -85,7 +85,16 @@ var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName ?? throw new NoNullAllowedException("ASPNETCORE_ENVIRONMENT environment variable has to be set.");
 
 TokenCredential credentials = new DefaultAzureCredential();
-
+if (environment != "local")
+    // key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
+    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"),
+        credentials,
+        new CustomKeyVaultSecretManager([],
+            new Dictionary<string, string>
+            {
+                ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                ["COSMOS--CONNECTIONSTRING"] = "CosmosStore:ConnectionString"
+            }));
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
@@ -147,7 +156,7 @@ builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(Cosmo
 
 builder.Services.AddSingleton(sp =>
 {
-    var connectionString = sp.GetRequiredService<IOptions<CosmosOptions>>().Value.ConnectionString;
+    var connectionString = builder.Configuration["CosmosStore:ConnectionString"] ?? throw new NoNullAllowedException("CosmosStore connection string is required");
     return new CosmosClient(connectionString,
         new()
         {
@@ -181,15 +190,7 @@ builder
         options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
-if (environment != "local")
-    // key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
-    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"),
-        credentials,
-        new CustomKeyVaultSecretManager([],
-            new Dictionary<string, string>
-            {
-                ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING"
-            }));
+
 
 builder.Services.AddSingleton<IMiddleware[]>(_ => [new CaptureMiddleware()]);
 builder.Services.AddEndpointsApiExplorer();
