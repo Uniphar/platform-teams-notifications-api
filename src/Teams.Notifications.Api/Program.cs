@@ -85,16 +85,16 @@ var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName ?? throw new NoNullAllowedException("ASPNETCORE_ENVIRONMENT environment variable has to be set.");
 
 TokenCredential credentials = new DefaultAzureCredential();
-if (environment != "local")
-    // key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
-    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"),
-        credentials,
-        new CustomKeyVaultSecretManager([],
-            new Dictionary<string, string>
-            {
-                ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING",
-                ["COSMOS--CONNECTIONSTRING"] = "CosmosStore:ConnectionString"
-            }));
+var kvName = environment == "local" ? "dev" : environment;
+// key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
+builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"),
+    credentials,
+    new CustomKeyVaultSecretManager([],
+        new Dictionary<string, string>
+        {
+            ["APPLICATIONINSIGHTS--CONNECTION--STRING"] = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            ["COSMOS--CONNECTIONSTRING"] = "CosmosStore:ConnectionString"
+        }));
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
