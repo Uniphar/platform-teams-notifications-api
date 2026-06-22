@@ -3,7 +3,7 @@ replicaCount: 1
 revisionHistoryLimit: 2
 nameOverride: platform-teams-notification-api
 appPath: /platform-teams-notification-api
-healthUrl: /health
+healthUrl: /platform-teams-notification-api/health
 environment: TBD
 env:
   ASPNETCORE_ENVIRONMENT: "dev"

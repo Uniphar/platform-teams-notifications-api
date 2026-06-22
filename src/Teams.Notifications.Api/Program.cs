@@ -22,6 +22,7 @@ global using AdaptiveCards;
 global using Azure.Core;
 global using Azure.Identity;
 global using Azure.Messaging.ServiceBus;
+global using Azure.Messaging.ServiceBus.Administration;
 global using Microsoft.Agents.Authentication;
 global using Microsoft.Agents.Builder;
 global using Microsoft.Agents.Builder.App;
@@ -39,6 +40,7 @@ global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Mvc.ApplicationModels;
+global using Microsoft.AspNetCore.Mvc.Filters;
 global using Microsoft.AspNetCore.OpenApi;
 global using Microsoft.Azure.Cosmos;
 global using Microsoft.Extensions.Configuration;
@@ -54,7 +56,6 @@ global using Microsoft.IdentityModel.Protocols;
 global using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 global using Microsoft.IdentityModel.Tokens;
 global using Microsoft.IdentityModel.Validators;
-global using Microsoft.Kiota.Abstractions;
 global using Microsoft.OpenApi;
 global using Polly;
 global using Polly.Retry;
@@ -87,7 +88,21 @@ var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName ?? throw new NoNullAllowedException("ASPNETCORE_ENVIRONMENT environment variable has to be set.");
 
 TokenCredential credentials = new DefaultAzureCredential();
+var kvName = environment == "local" ? "dev" : environment;
+// Load all secrets from Key Vault, then remap only the legacy keys this app expects.
+builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"), credentials);
 
+var keyVaultRemappedSettings = new Dictionary<string, string?>();
+var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
+
+var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
+if (!string.IsNullOrWhiteSpace(cosmosConnectionString))
+    keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
+
+if (keyVaultRemappedSettings.Count > 0)
+    builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
@@ -149,7 +164,7 @@ builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(Cosmo
 
 builder.Services.AddSingleton(sp =>
 {
-    var connectionString = sp.GetRequiredService<IOptions<CosmosOptions>>().Value.ConnectionString;
+    var connectionString = builder.Configuration["CosmosStore:ConnectionString"] ?? throw new NoNullAllowedException("CosmosStore connection string is required");
     return new CosmosClient(connectionString,
         new()
         {
@@ -183,9 +198,7 @@ builder
         options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
-if (environment != "local")
-    // key vault is required for ApplicationInsights, since it needs the connection string, but locally we will remove it
-    builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{environment}-kv.vault.azure.net/"), credentials);
+
 
 builder.Services.AddSingleton<IMiddleware[]>(_ => [new CaptureMiddleware()]);
 builder.Services.AddEndpointsApiExplorer();
@@ -210,14 +223,17 @@ builder.Services.AddOpenApi(options =>
 // that state survives Agent restarts, and operate correctly
 // in a cluster of Agent instances.
 builder.Services.AddSingleton<IStorage, MemoryStorage>();
-
+const string healthUrl = appPathPrefix + "/health";
 // Configure OpenTelemetry
-builder.RegisterOpenTelemetry(appPathPrefix).Build();
+builder
+    .RegisterOpenTelemetry(appPathPrefix)
+    .WithFilterExclusion([healthUrl])
+    .Build();
 
 
 var app = builder.Build();
 await app.Services.GetRequiredService<ICosmosMessageStore>().EnsureContainerIsProvisioned();
-app.MapHealthChecks("/health");
+app.MapHealthChecks(healthUrl);
 app.MapOpenApi(appPathPrefix + "/swagger/{documentName}/openapi.json");
 app.UseSwaggerUI(c =>
 {

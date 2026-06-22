@@ -42,7 +42,13 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.x
+      - name: Install nswag tool
+        run: dotnet tool install NSwag.ConsoleCore --global
 
+      - name: Run NSwag to generate API clients
+        working-directory: ./src/${{ inputs.applicationFolder }}.Tests
+        run: |
+          nswag run teams-api.nswag
       - name: azure login
         uses: azure/login@v3
         with:

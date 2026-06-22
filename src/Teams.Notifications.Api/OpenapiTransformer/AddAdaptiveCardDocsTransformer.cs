@@ -34,19 +34,27 @@ public sealed class AddAdaptiveCardDocsTransformer : IOpenApiDocumentTransformer
     {
         var paths = document.Paths;
         foreach (var path in paths)
-        foreach (var operation in (path.Value.Operations ?? [])
-                 .Where(operation => operation.Key == HttpMethod.Get))
-        {
-            operation.Value.Responses?["200"].Content?["application/json"].Schema = new OpenApiSchema
+            foreach (var operation in (path.Value.Operations ?? [])
+                     .Where(operation => operation.Key == HttpMethod.Get))
             {
-                Type = JsonSchemaType.Object,
-                ExternalDocs = new()
+                if (operation.Value.Responses is null ||
+                    !operation.Value.Responses.TryGetValue("200", out var response) ||
+                    response.Content is null ||
+                    !response.Content.TryGetValue("application/json", out var mediaType))
                 {
-                    Description = "Find out more about Adaptive Cards",
-                    Url = new("https://adaptivecards.io/schemas/adaptive-card.json")
+                    continue;
                 }
-            };
-        }
+
+                mediaType.Schema = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Object,
+                    ExternalDocs = new()
+                    {
+                        Description = "Find out more about Adaptive Cards",
+                        Url = new("https://adaptivecards.io/schemas/adaptive-card.json")
+                    }
+                };
+            }
 
         return Task.CompletedTask;
     }

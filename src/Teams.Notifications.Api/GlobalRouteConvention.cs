@@ -1,22 +1,19 @@
 namespace Teams.Notifications.Api;
 
-internal sealed class GlobalRouteConvention : IApplicationModelConvention
+internal sealed class GlobalRouteConvention(string routePrefix) : IApplicationModelConvention
 {
-    private readonly AttributeRouteModel routePrefix;
-
-    public GlobalRouteConvention(string appPathPrefix)
-    {
-        ArgumentNullException.ThrowIfNull(appPathPrefix);
-        routePrefix = new(new RouteAttribute(appPathPrefix));
-    }
-
     public void Apply(ApplicationModel application)
     {
-        foreach (var selector in application.Controllers.SelectMany(c => c.Selectors))
-        {
-            selector.AttributeRouteModel = selector.AttributeRouteModel != null
-                ? AttributeRouteModel.CombineAttributeRouteModel(routePrefix, selector.AttributeRouteModel)
-                : routePrefix;
-        }
+        var prefixSelector = AttributeRouteModel.CombineTemplates(routePrefix, string.Empty);
+
+        foreach (var controller in application.Controllers)
+            foreach (var selector in controller.Selectors)
+            {
+                selector.AttributeRouteModel = selector.AttributeRouteModel is null
+                    ? new() { Template = prefixSelector }
+                    : AttributeRouteModel.CombineAttributeRouteModel(
+                        new() { Template = routePrefix },
+                        selector.AttributeRouteModel);
+            }
     }
 }

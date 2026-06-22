@@ -1,6 +1,3 @@
-using Azure.Messaging.ServiceBus;
-using Azure.Messaging.ServiceBus.Administration;
-
 namespace Teams.Notifications.Api.BackgroundServices;
 
 /// <summary>
