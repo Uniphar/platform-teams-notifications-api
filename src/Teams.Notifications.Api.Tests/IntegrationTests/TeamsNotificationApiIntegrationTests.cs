@@ -1,7 +1,8 @@
-using System.Data;
-using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Azure.Messaging.ServiceBus.Administration;
+using System.Data;
+using System.Text.Json;
+using Teams.Notifications.Api.Commands;
 using Teams.Notifications.Api.Tests.TeamsClient;
 using IntegrationSuiteErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.IntegrationSuiteErrorModel;
 using LogicAppErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.LogicAppErrorModel;
@@ -198,15 +199,19 @@ public sealed class TeamsNotificationApiIntegrationTests
         while (DateTimeOffset.UtcNow < timeoutAt)
         {
             var message = await receiver.ReceiveMessageAsync(TimeSpan.FromSeconds(10), cancellationToken);
-            if (message is null) continue;
+            if (message is null) Assert.Fail("There should always be a message");
 
             if (!string.Equals(message.Subject, expectedSubject, StringComparison.Ordinal)) continue;
-
-            using var body = JsonDocument.Parse(message.Body);
-            if (!body.RootElement.TryGetProperty("uniqueId", out var idProperty)) continue;
-            if (string.Equals(idProperty.GetString(), expectedUniqueId, StringComparison.Ordinal)) return;
+            var body = await JsonSerializer.DeserializeAsync<TeamsCardCreatedCommand>(message.Body.ToStream(), cancellationToken: cancellationToken);
+            if (body is null) Assert.Fail("There should always be a body");
+            if (string.Equals(body.UniqueId, expectedUniqueId, StringComparison.Ordinal))
+            {
+                // All good, we found the expected message
+                return;
+            }
         }
 
+        // went through all the messages, and after 2 min we found no message with that unique ID, fail
         Assert.Fail($"Expected Service Bus message '{expectedSubject}' for uniqueId '{expectedUniqueId}' was not received.");
     }
 
