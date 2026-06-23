@@ -227,6 +227,7 @@ const string healthUrl = appPathPrefix + "/health";
 // Configure OpenTelemetry
 builder
     .RegisterOpenTelemetry(appPathPrefix)
+    .WithAppInsightsEnvironmentVariable("APPLICATIONINSIGHTS:CONNECTIONSTRING")
     .WithFilterExclusion([healthUrl])
     .Build();
 
