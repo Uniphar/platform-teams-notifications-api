@@ -227,7 +227,7 @@ const string healthUrl = appPathPrefix + "/health";
 // Configure OpenTelemetry
 builder
     .RegisterOpenTelemetry(appPathPrefix)
-    .WithAppInsightsEnvironmentVariable("APPLICATIONINSIGHTS:CONNECTIONSTRING")
+    .WithAppInsightsConnectionString(builder.Configuration["APPLICATIONINSIGHTS:CONNECTIONSTRING"]?? throw new InvalidOperationException("Application Insights connection string is required"))
     .WithFilterExclusion([healthUrl])
     .Build();
 
