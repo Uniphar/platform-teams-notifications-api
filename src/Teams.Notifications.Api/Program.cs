@@ -204,6 +204,8 @@ builder.Services.AddSingleton<IMiddleware[]>(_ => [new CaptureMiddleware()]);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi(options =>
 {
+    // Azure API Management only supports OpenAPI 3.0; 3.1 nullable arrays (type: [string, null]) are rejected.
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
     options.AddDocumentTransformer((doc, _, _) =>
     {
         foreach (var server in doc.Servers ?? [])
