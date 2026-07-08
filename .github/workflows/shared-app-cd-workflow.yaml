@@ -88,6 +88,20 @@ jobs:
       applicationFolder: ${{ inputs.applicationFolder }}
       environment: dev
 
+  import_to_apim_dev:
+    needs: app_integration_tests_dev
+    if: ${{ always() && needs.app_deployment_dev.result == 'success' }}
+    uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_SUBSCRIPTION_ID }}
+    with:
+      environment: dev
+      apiName: "Teams Notifications Api"
+      apiPath: "platform-teams-notification-api"
+      openApiSpecPath: "platform-teams-notification-api/swagger/v1/swagger.json"
+
   app_initialization_test:
     needs: [ app_package, app_integration_tests_dev ]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
@@ -129,6 +143,20 @@ jobs:
       environment: test
       testCategory: "Smoke"
 
+  import_to_apim_test:
+    needs: app_integration_tests_test
+    if: ${{ always() && needs.app_deployment_test.result == 'success' }}
+    uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_SUBSCRIPTION_ID }}
+    with:
+      environment: test
+      apiName: "Teams Notifications Api"
+      apiPath: "platform-teams-notification-api"
+      openApiSpecPath: "platform-teams-notification-api/swagger/v1/swagger.json"
+
   app_initialization_prod:
     needs: [ app_package, app_integration_tests_test ]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
@@ -169,3 +197,17 @@ jobs:
       applicationFolder: ${{ inputs.applicationFolder }}
       environment: prod
       testCategory: "Smoke"
+
+  import_to_apim_prod:
+    needs: app_integration_tests_prod
+    if: ${{ always() && needs.app_deployment_prod.result == 'success' }}
+    uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_PROD_SUBSCRIPTION_ID }}
+    with:
+      environment: prod
+      apiName: "Teams Notifications Api"
+      apiPath: "platform-teams-notification-api"
+      openApiSpecPath: "platform-teams-notification-api/swagger/v1/swagger.json"
