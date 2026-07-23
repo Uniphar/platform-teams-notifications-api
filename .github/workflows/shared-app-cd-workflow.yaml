@@ -19,6 +19,9 @@ on:
       AZURE_DEV_SUBSCRIPTION_ID:
         required: true
         description: "Azure Dev Subscription ID"
+      AZURE_DEV_NEW_SUBSCRIPTION_ID:
+        required: true
+        description: "Azure Dev New Subscription ID"
       AZURE_PROD_SUBSCRIPTION_ID:
         required: true
         description: "Azure Prod Subscription ID"
@@ -31,10 +34,6 @@ on:
         type: string
         required: true
         description: "Application Name"
-      singleCluster:
-        type: boolean
-        required: true
-        description: "Deploy to a single cluster or all"
 
 jobs:
   app_package:
@@ -61,7 +60,7 @@ jobs:
       RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_DEV }}
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_DEV }}
 
-  app_deployment_dev:
+  app_deployment_dev_ne:
     needs: [app_package, app_initialization_dev]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
@@ -74,11 +73,27 @@ jobs:
       applicationName: ${{ inputs.applicationName }}
       applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
       environment: dev
-      singleCluster: ${{ inputs.singleCluster }}
+      regionShortCode: ne
+      SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_DEV }}
+
+  app_deployment_dev_we:
+    needs: [app_package, app_initialization_dev]
+    uses: ./.github/workflows/shared-app-deployment-workflow.yaml
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_SUBSCRIPTION_ID }}
+    with:
+      acrName: computeaksacr
+      applicationFolder: ${{ inputs.applicationFolder }}
+      applicationName: ${{ inputs.applicationName }}
+      applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
+      environment: dev
+      regionShortCode: we
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_DEV }}
 
   app_integration_tests_dev:
-    needs: app_deployment_dev
+    needs: [app_deployment_dev_ne, app_deployment_dev_we]
     uses: ./.github/workflows/shared-app-integration-tests-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -89,8 +104,7 @@ jobs:
       environment: dev
 
   import_to_apim_dev:
-    needs: app_integration_tests_dev
-    if: ${{ always() && needs.app_deployment_dev.result == 'success' }}
+    needs: [app_deployment_dev_ne, app_deployment_dev_we]
     uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -115,7 +129,7 @@ jobs:
       RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_TEST }}
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_TEST }}
 
-  app_deployment_test:
+  app_deployment_test_ne:
     needs: [app_package, app_integration_tests_dev, app_initialization_test]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
@@ -128,11 +142,27 @@ jobs:
       applicationName: ${{ inputs.applicationName }}
       applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
       environment: test
-      singleCluster: ${{ inputs.singleCluster }}
+      regionShortCode: ne
+      SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_TEST }}
+
+  app_deployment_test_we:
+    needs: [app_package, app_integration_tests_dev, app_initialization_test]
+    uses: ./.github/workflows/shared-app-deployment-workflow.yaml
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_SUBSCRIPTION_ID }}
+    with:
+      acrName: computeaksacr
+      applicationFolder: ${{ inputs.applicationFolder }}
+      applicationName: ${{ inputs.applicationName }}
+      applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
+      environment: test
+      regionShortCode: we
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_TEST }}
 
   app_integration_tests_test:
-    needs: app_deployment_test
+    needs: [app_deployment_test_ne, app_deployment_test_we]
     uses: ./.github/workflows/shared-app-integration-tests-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -144,8 +174,7 @@ jobs:
       testCategory: "Smoke"
 
   import_to_apim_test:
-    needs: app_integration_tests_test
-    if: ${{ always() && needs.app_deployment_test.result == 'success' }}
+    needs: [app_deployment_test_ne, app_deployment_test_we]
     uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -170,7 +199,7 @@ jobs:
       RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_PROD }}
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_PROD }}
 
-  app_deployment_prod:
+  app_deployment_prod_ne:
     needs: [app_package, app_integration_tests_test, app_initialization_prod]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
@@ -183,11 +212,29 @@ jobs:
       applicationName: ${{ inputs.applicationName }}
       applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
       environment: prod
-      singleCluster: ${{ inputs.singleCluster }}
+      regionShortCode: ne
+
+      SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_PROD }}
+
+  app_deployment_prod_we:
+    needs: [app_package, app_integration_tests_test, app_initialization_prod]
+    uses: ./.github/workflows/shared-app-deployment-workflow.yaml
+    secrets:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_PROD_SUBSCRIPTION_ID }}
+    with:
+      acrName: computeaksacr
+      applicationFolder: ${{ inputs.applicationFolder }}
+      applicationName: ${{ inputs.applicationName }}
+      applicationVersion: ${{ needs.app_package.outputs.applicationVersion }}
+      environment: prod
+      regionShortCode: we
+
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_PROD }}
 
   app_integration_tests_prod:
-    needs: app_deployment_prod
+    needs: [app_deployment_prod_ne, app_deployment_prod_we]
     uses: ./.github/workflows/shared-app-integration-tests-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -199,8 +246,7 @@ jobs:
       testCategory: "Smoke"
 
   import_to_apim_prod:
-    needs: app_integration_tests_prod
-    if: ${{ always() && needs.app_deployment_prod.result == 'success' }}
+    needs: [app_deployment_prod_ne, app_deployment_prod_we]
     uses: Uniphar/shared-workflows/.github/workflows/import-api-to-apim.yaml@main
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
