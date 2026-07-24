@@ -28,8 +28,8 @@ jobs:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_PLATFORM_SUBSCRIPTION_ID: ${{ secrets.AZURE_PLATFORM_SUBSCRIPTION_ID }}
       AZURE_DEV_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_SUBSCRIPTION_ID }}
+      AZURE_DEV_NEW_SUBSCRIPTION_ID: ${{ secrets.AZURE_DEV_NEW_SUBSCRIPTION_ID }}
       AZURE_PROD_SUBSCRIPTION_ID: ${{ secrets.AZURE_PROD_SUBSCRIPTION_ID }}
     with:
       applicationFolder: Teams.Notifications.Api
       applicationName: platform-teams-notification-api
-      singleCluster: false
