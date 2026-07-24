@@ -61,7 +61,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_DEV }}
 
   app_deployment_dev_ne:
-    needs: [app_package, app_initialization_dev]
+    needs: [app_initialization_dev]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -77,7 +77,7 @@ jobs:
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_DEV }}
 
   app_deployment_dev_we:
-    needs: [app_package, app_initialization_dev]
+    needs: [app_deployment_dev_ne]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -117,7 +117,7 @@ jobs:
       openApiSpecPath: "platform-teams-notification-api/swagger/v1/openapi.json"
 
   app_initialization_test:
-    needs: [app_package, app_integration_tests_dev]
+    needs: [app_package]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -130,7 +130,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_TEST }}
 
   app_deployment_test_ne:
-    needs: [app_package, app_integration_tests_dev, app_initialization_test]
+    needs: [app_initialization_test]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -146,7 +146,7 @@ jobs:
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_TEST }}
 
   app_deployment_test_we:
-    needs: [app_package, app_integration_tests_dev, app_initialization_test]
+    needs: [app_deployment_test_ne]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -187,7 +187,7 @@ jobs:
       openApiSpecPath: "platform-teams-notification-api/swagger/v1/openapi.json"
 
   app_initialization_prod:
-    needs: [app_package, app_integration_tests_test]
+    needs: [app_package]
     uses: ./.github/workflows/shared-app-initialization-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -200,7 +200,7 @@ jobs:
       LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.WORKSPACE_ID_PROD }}
 
   app_deployment_prod_ne:
-    needs: [app_package, app_integration_tests_test, app_initialization_prod]
+    needs: [app_initialization_prod]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -217,7 +217,7 @@ jobs:
       SERVICE_PRINCIPAL_NAME: ${{ vars.PRINCIPAL_NAME_PROD }}
 
   app_deployment_prod_we:
-    needs: [app_package, app_integration_tests_test, app_initialization_prod]
+    needs: [app_deployment_prod_ne]
     uses: ./.github/workflows/shared-app-deployment-workflow.yaml
     secrets:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
