@@ -36,10 +36,10 @@ on:
         type: string
         required: true
         description: "Environment"
-      singleCluster:
-        type: boolean
+      regionShortCode:
+        type: string
         required: true
-        description: "Deploy to a single cluster or all"
+        description: "Region short code"
       SERVICE_PRINCIPAL_NAME:
         type: string
         required: true
@@ -47,15 +47,9 @@ on:
 
 jobs:
   deploy_app:
-    name: Deploy Application to ${{ inputs.environment }} ${{ matrix.regionShortCode }}
+    name: Deploy Application to ${{ inputs.environment }} ${{ inputs.regionShortCode }}
     environment: ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        regionShortCode: ["ne", "we"]
-        exclude:
-          - regionShortCode: ${{ inputs.singleCluster && 'we' || '_' }}
     steps:
       - name: checkout repo
         uses: actions/checkout@v6
@@ -71,7 +65,7 @@ jobs:
       - name: compute environment variables
         uses: azure/powershell@v3
         env:
-          AKS_CLUSTER_NAME: ${{ vars[format('AKS_{0}_{1}_CLUSTER', matrix.regionShortCode, inputs.environment)] }}
+          AKS_CLUSTER_NAME: ${{ vars[format('AKS_{0}_{1}_CLUSTER', inputs.regionShortCode, inputs.environment)] }}
         with:
           inlineScript: |
             try{
@@ -107,7 +101,7 @@ jobs:
       - name: Gets K8s context
         uses: azure/aks-set-context@v5
         with:
-          resource-group: compute-${{ matrix.regionShortCode }}-${{ inputs.environment }}
+          resource-group: compute-${{ inputs.regionShortCode }}-${{ inputs.environment }}
           cluster-name: ${{ env.AKS_CLUSTER_NAME }}
           use-kubelogin: "true"
         id: k8context
