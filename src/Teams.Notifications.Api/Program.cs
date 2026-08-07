@@ -92,17 +92,6 @@ var kvName = environment == "local" ? "dev" : environment;
 // Load all secrets from Key Vault, then remap only the legacy keys this app expects.
 builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"), credentials);
 
-var keyVaultRemappedSettings = new Dictionary<string, string?>();
-var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
-if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
-    keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
-
-var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
-if (!string.IsNullOrWhiteSpace(cosmosConnectionString))
-    keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
-
-if (keyVaultRemappedSettings.Count > 0)
-    builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
@@ -164,7 +153,7 @@ builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(Cosmo
 
 builder.Services.AddSingleton(sp =>
 {
-    var connectionString = builder.Configuration["CosmosStore:ConnectionString"] ?? throw new NoNullAllowedException("CosmosStore connection string is required");
+    var connectionString = builder.Configuration["Cosmos:ConnectionString"] ?? throw new NoNullAllowedException("Cosmos connection string is required");
     return new CosmosClient(connectionString,
         new()
         {
