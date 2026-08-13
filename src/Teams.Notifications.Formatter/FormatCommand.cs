@@ -60,12 +60,10 @@ internal sealed class FormatCommand : Command<FormatCommand.Settings>
             table.AddColumn(new("[yellow]Code[/]"));
             table.AddColumn(new("[blue]Message[/]"));
             parseResult.Warnings.ToList().ForEach(w => table.AddRow($"[yellow]{Markup.Escape(w.Code.ToString())}[/]", $"[blue]{Markup.Escape(w.Message)}[/]"));
-
+            var warningsText = string.Join(", ", parseResult.Warnings.Select(w => $"{w.Code}: {w.Message}"));
             AnsiConsole.Write(table);
-            GitHubActions.Error("Formatting", $"The file {file} contains adaptive card parsing warnings (treated as invalid): {warningsText}");
-            throw new InvalidDataException($"The file {file} contains adaptive card parsing warnings (treated as invalid): {warningsText}");
-            GitHubActions.Error("Formatting", $"The file {file} failed to parse as a valid adaptive card: {warningsText}");
-            throw new InvalidDataException($"The file {file} failed to parse as a valid adaptive card: {warningsText}");
+            GitHubActions.Error("Formatting", $"The file {file} has some warning while parsing: {warningsText}");
+            throw new InvalidDataException($"The file {file} has warnings, fix this: {warningsText}");
         }
 
         var formatted = parseResult.Card.ToJson() ?? string.Empty;
