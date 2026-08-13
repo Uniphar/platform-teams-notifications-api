@@ -50,8 +50,23 @@ internal sealed class FormatCommand : Command<FormatCommand.Settings>
             throw new InvalidDataException($"Unrecognised types {string.Join(",", wrongItemsFile.Values)}");
         }
 
-        var item = AdaptiveCard.FromJson(text).Card;
-        var formatted = item.ToJson() ?? string.Empty;
+        var parseResult = AdaptiveCard.FromJson(text);
+        if (parseResult.Warnings.Count > 0)
+        {
+            var file = Path.GetFileName(sourcePath);
+            AnsiConsole.MarkupLineInterpolated($"[bold red]The following file failed to parse as a valid adaptive card[/] [bold white]{Markup.Escape(file)}[/]");
+
+            var table = new Table();
+            table.AddColumn(new("[yellow]Code[/]"));
+            table.AddColumn(new("[blue]Message[/]"));
+            parseResult.Warnings.ToList().ForEach(w => table.AddRow($"[yellow]{Markup.Escape(w.Code.ToString())}[/]", $"[blue]{Markup.Escape(w.Message)}[/]"));
+            var warningsText = string.Join(", ", parseResult.Warnings.Select(w => $"{w.Code}: {w.Message}"));
+            AnsiConsole.Write(table);
+            GitHubActions.Error("Formatting", $"The file {file} has some warning while parsing: {warningsText}");
+            throw new InvalidDataException($"The file {file} has warnings, fix this: {warningsText}");
+        }
+
+        var formatted = parseResult.Card.ToJson() ?? string.Empty;
 
         var sw = new StreamWriter(formattedFile);
         sw.Write(formatted);
