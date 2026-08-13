@@ -54,11 +54,11 @@ internal sealed class FormatCommand : Command<FormatCommand.Settings>
         if (parseResult.Warnings.Count > 0)
         {
             var file = Path.GetFileName(sourcePath);
-            AnsiConsole.MarkupLineInterpolated($"[bold red]The following file failed to parse as a valid adaptive card[/] [bold white]{file}[/]");
+            AnsiConsole.MarkupLineInterpolated($"[bold red]The following file failed to parse as a valid adaptive card[/] [bold white]{Markup.Escape(file)}[/]");
             var table = new Table();
             table.AddColumn(new("[yellow]Code[/]"));
             table.AddColumn(new("[blue]Message[/]"));
-            parseResult.Warnings.ToList().ForEach(w => table.AddRow($"[yellow]{w.Code}[/]", $"[blue]{w.Message}[/]"));
+            parseResult.Warnings.ToList().ForEach(w => table.AddRow($"[yellow]{Markup.Escape(w.Code.ToString())}[/]", $"[blue]{Markup.Escape(w.Message)}[/]"));
             AnsiConsole.Write(table);
 
             var warningsText = string.Join(", ", parseResult.Warnings.Select(w => $"{w.Code}: {w.Message}"));
