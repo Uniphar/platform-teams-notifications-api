@@ -15,9 +15,9 @@ internal static class PropertyHelper
         using var doc = JsonDocument.Parse(json);
 
         return (from property in doc.RootElement.EnumerateObject()
-            let value = property.Value.GetString()
-            where !string.IsNullOrWhiteSpace(value)
-            select new PropWithMustache { Property = property.Name, MustacheProperties = value.GetMustachePropertiesFromString().FirstOrDefault() }).ToList();
+                let value = property.Value.GetString()
+                where !string.IsNullOrWhiteSpace(value)
+                select new PropWithMustache { Property = property.Name, MustacheProperties = value.GetMustachePropertiesFromString().FirstOrDefault() }).ToList();
     }
 
     /// <summary>
@@ -30,6 +30,7 @@ internal static class PropertyHelper
         // 
         var matches = MustacheRegex.Matches(content);
         var properties = matches
+            .Cast<Match>()
             .Select(x => new { name = x.Groups["name"].Value, type = x.Groups["type"].Value })
             .DistinctByProps(x => x.name);
         return properties.ToDictionary(m => m.name, m => m.type);
