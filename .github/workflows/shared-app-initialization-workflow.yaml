@@ -62,17 +62,14 @@ jobs:
         with:
           inlineScript: |
             $authTokenSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-platform-authorization-secret-${{ inputs.environment }}'
-            $apiUrlSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-endpoint'
-            $otlpUrlSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-metrics-endpoint'
+            $otlpUrlSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-endpoint'
 
             $authToken = ConvertFrom-SecureString $authTokenSecret.SecretValue -AsPlainText
-            $apiUrl = ConvertFrom-SecureString $apiUrlSecret.SecretValue -AsPlainText
             $otlpUrl = ConvertFrom-SecureString $otlpUrlSecret.SecretValue -AsPlainText
 
             Write-Output "::add-mask::$authToken"
 
             echo "DASH0_AUTH_TOKEN=$authToken" >> $env:GITHUB_ENV
-            echo "DASH0_API_URL=$apiUrl" >> $env:GITHUB_ENV
             echo "DASH0_OTLP_URL=$otlpUrl" >> $env:GITHUB_ENV
           azPSVersion: "latest"
           errorActionPreference: "stop"
@@ -81,7 +78,10 @@ jobs:
       - name: setup dash0 cli
         uses: dash0hq/dash0-cli/.github/actions/setup@main
         with:
-          api-url: ${{ env.DASH0_API_URL }}
+          # dash0-endpoint/dash0-metrics-endpoint in uni-core-platform-kv are OTLP ingest endpoints
+          # (host:port, no scheme) for pushing telemetry; the CLI's own REST API lives at api-url,
+          # which requires a scheme and is not one of the KV secrets.
+          api-url: https://api.eu-west-1.aws.dash0.com
           otlp-url: ${{ env.DASH0_OTLP_URL }}
           auth-token: ${{ env.DASH0_AUTH_TOKEN }}
 

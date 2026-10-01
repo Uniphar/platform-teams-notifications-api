@@ -190,7 +190,7 @@ In brief:
 
 Alert rules are no longer deployed via bicep/Log Analytics. They are defined as Dash0 `PrometheusRule` check-rule documents under `devops/dash0/check-rules/`, one file per environment (`exception-detected-alert.{dev,test,prod}.yaml`), and synced per environment by the `initialize_workload` job in [`shared-app-initialization-workflow.yaml`](../.github/workflows/shared-app-initialization-workflow.yaml) using the [Dash0 CLI](https://www.dash0.com/docs/dash0/miscellaneous/tooling/dash0-cli/about) — the same job that previously ran `Initialize-PlatformTeamsNotificationApi.ps1`.
 
-The Dash0 API/OTLP endpoints and per-environment auth tokens are pulled from the `uni-core-platform-kv` Key Vault at run time (`dash0-endpoint`, `dash0-metrics-endpoint`, `dash0-platform-authorization-secret-{dev,test,prod}`) — nothing Dash0-related is stored as a GitHub Actions secret/variable.
+The Dash0 CLI's REST API endpoint is `https://api.eu-west-1.aws.dash0.com` (hardcoded in the workflow — it requires a scheme and isn't one of the KV secrets). The OTLP ingest endpoint and per-environment auth tokens are pulled from the `uni-core-platform-kv` Key Vault at run time (`dash0-endpoint`, `dash0-platform-authorization-secret-{dev,test,prod}`) — nothing Dash0-related is stored as a GitHub Actions secret/variable.
 
 To update an alert: edit the relevant `devops/dash0/check-rules/exception-detected-alert.<environment>.yaml` file and push to `main` (or run the workflow manually) — the CI job applies it with `dash0 apply -f devops/dash0/check-rules/exception-detected-alert.<environment>.yaml`.
 
