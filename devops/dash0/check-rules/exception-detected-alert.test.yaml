@@ -1,0 +1,34 @@
+# Dash0 "check rules as code" definition, synced per-environment via the Dash0 CLI in CI
+# (see .github/workflows/shared-app-initialization-workflow.yaml, `initialize_workload` job).
+#
+# Replaces the old AppInsights-based scheduledQueryRules alert (devops/alerts.bicep).
+# Routing is label-based (`environment`), not via the `dash0.com/notification-channel-ids`
+# annotation: the `apps-team-test` notification channel already exists in Dash0 (created by
+# the frontgate app) and routes on `dash0.failed_check.max_status` + `environment`, so no new
+# notification channel needs to be created here.
+#
+# TODO: validate/refine the `expr` below in the Dash0 UI query builder before relying on it.
+# It approximates the previous AppExceptions KQL query (which excluded
+# OperationCanceledException/TaskCanceledException) using the `dash0.spans` error-status count,
+# since Dash0 check rules evaluate PromQL over metrics, not raw logs, and span metrics have no
+# exception-type dimension to filter on.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-teams-notification-api-exception-detected-test
+  labels:
+    dash0.com/id: platform-teams-notification-api-exception-detected-test
+spec:
+  groups:
+    - name: Alerting
+      interval: 5m
+      rules:
+        - alert: Teams Notifications Api Exception Detected (test)
+          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", deployment_environment_name="test", otel_span_status_code="ERROR"}[5m])) > 0
+          for: 0m
+          annotations:
+            summary: "Unhandled exception detected in platform-teams-notification-api (test)"
+            description: "One or more spans with ERROR status were recorded for platform-teams-notification-api in test over the last 5 minutes."
+          labels:
+            environment: test
+            service: platform-teams-notification-api

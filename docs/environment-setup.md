@@ -21,7 +21,7 @@ The API communicates with Teams via an Azure Bot Service. The bot's identity is 
 
 ### 1a. Deploy the Bot Service
 
-The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are deployed separately via `devops/alerts.bicep` (see step 5).
+The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are managed separately as Dash0 check rules (see step 5).
 
 ```bash
 ENVIRONMENT=dev          # dev | test | prod
@@ -47,8 +47,6 @@ az deployment group create \
     endpoint="https://api.${ENVIRONMENT}.uniphar.ie/platform-teams-notification-api/api/messages" \
     logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
 ```
-
-> **Note:** The `alerts.bicep` template assumes action groups named `platform-engineering-applications-low` and `platform-engineering-applications-high` exist in a resource group called `observability` within the same subscription. These must be in place before deploying alert rules.
 
 ---
 
@@ -107,8 +105,10 @@ $permissions = @(
     "User.Read.All"
 )
 
-$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
-if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
+
+if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+
 $graphSp = Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $roles   = $graphSp.AppRole | Where-Object { $permissions -contains $_.Value }
 
@@ -186,16 +186,19 @@ In brief:
 
 ---
 
-## 5. Alert Rules Only
+## 5. Alert Rules (Dash0 Check Rules as Code)
 
-If the bot service is already deployed and you only need to update/redeploy the alert rules, you can use the `alerts.bicep` template directly (or run `Initialize-PlatformTeamsNotificationApi.ps1`):
+Alert rules are no longer deployed via bicep/Log Analytics. They are defined as Dash0 `PrometheusRule` check-rule documents under `devops/dash0/check-rules/`, one file per environment (`exception-detected-alert.{dev,test,prod}.yaml`), and synced per environment by the `initialize_workload` job in [`shared-app-initialization-workflow.yaml`](../.github/workflows/shared-app-initialization-workflow.yaml) using the [Dash0 CLI](https://www.dash0.com/docs/dash0/miscellaneous/tooling/dash0-cli/about) — the same job that previously ran `Initialize-PlatformTeamsNotificationApi.ps1`.
+
+The Dash0 API/OTLP endpoints and per-environment auth tokens are pulled from the `uni-core-platform-kv` Key Vault at run time (`dash0-endpoint`, `dash0-metrics-endpoint`, `dash0-platform-authorization-secret-{dev,test,prod}`) — nothing Dash0-related is stored as a GitHub Actions secret/variable.
+
+To update an alert: edit the relevant `devops/dash0/check-rules/exception-detected-alert.<environment>.yaml` file and push to `main` (or run the workflow manually) — the CI job applies it with `dash0 apply -f devops/dash0/check-rules/exception-detected-alert.<environment>.yaml`.
+
+To apply locally, authenticate with the Dash0 CLI (using the same `uni-core-platform-kv` secrets above) and run:
 
 ```bash
-az deployment group create \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "deploy-$(date +%Y%m%d%H%M%S)-teams-alerts" \
-  --template-file devops/alerts.bicep \
-  --parameters \
-    environment="$ENVIRONMENT" \
-    logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
+dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.yaml --dry-run   # preview
+dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.yaml             # apply
 ```
+
+Routing to a team is label-based (the `environment` label on each check rule), matching the existing `apps-team-{dev,test,prod}` Dash0 notification channels — no per-repo notification channel needs to be created.
