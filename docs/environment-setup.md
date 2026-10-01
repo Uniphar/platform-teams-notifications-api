@@ -201,4 +201,4 @@ dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.ya
 dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.yaml             # apply
 ```
 
-Routing to a team is label-based (the `environment` label on each check rule), matching the existing `apps-team-{dev,test,prod}` Dash0 notification channels — no per-repo notification channel needs to be created.
+Routing to the team is label-based (the `environment` label on each check rule). Each environment also has its own `Dash0NotificationChannel` document under `devops/dash0/notification-channels/apps-team.{dev,test,prod}.yaml` (email, mirroring frontgate's `apps-team-{dev,test,prod}` channels) that routes on `dash0.failed_check.max_status` + `environment` — synced the same way, before the check rules, in the same CI job.

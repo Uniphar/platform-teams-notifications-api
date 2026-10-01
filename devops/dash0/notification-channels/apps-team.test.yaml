@@ -1,0 +1,28 @@
+apiVersion: dash0.com/v1alpha1
+kind: Dash0NotificationChannel
+metadata:
+  name: platform-teams-notification-api-apps-team-test
+  labels:
+    dash0.com/origin: platform-teams-notification-api-apps-team-test
+spec:
+  type: email_v2
+  config:
+    recipients:
+      - rmjoia@uniphar.ie
+      - aandrei@uniphar.ie
+      - drodrigues@uniphar.ie
+      - ohaken@uniphar.ie
+      - dkoek@uniphar.ie
+      - hhudo@uniphar.ie
+      - bgeneralov@uniphar.ie
+  frequency: 0s
+  routing:
+    filters:
+      - - key: dash0.failed_check.max_status
+          operator: is_one_of
+          values:
+            - CRITICAL
+        - key: environment
+          operator: is_one_of
+          values:
+            - test

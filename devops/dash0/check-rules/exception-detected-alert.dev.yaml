@@ -3,9 +3,8 @@
 #
 # Replaces the old AppInsights-based scheduledQueryRules alert (devops/alerts.bicep).
 # Routing is label-based (`environment`), not via the `dash0.com/notification-channel-ids`
-# annotation: the `apps-team-dev` notification channel already exists in Dash0 (created by
-# the frontgate app) and routes on `dash0.failed_check.max_status` + `environment`, so no new
-# notification channel needs to be created here.
+# annotation: see devops/dash0/notification-channels/apps-team.dev.yaml, which routes on
+# `dash0.failed_check.max_status` + `environment`.
 #
 # TODO: validate/refine the `expr` below in the Dash0 UI query builder before relying on it.
 # It approximates the previous AppExceptions KQL query (which excluded
@@ -24,7 +23,7 @@ spec:
       interval: 5m
       rules:
         - alert: Teams Notifications Api Exception Detected (dev)
-          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", deployment_environment_name="dev", otel_span_status_code="ERROR"}[5m])) > 0
+          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", otel_span_status_code="ERROR"}[5m])) > 0
           for: 0m
           annotations:
             summary: "Unhandled exception detected in platform-teams-notification-api (dev)"

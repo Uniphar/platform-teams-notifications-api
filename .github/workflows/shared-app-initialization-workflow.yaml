@@ -38,9 +38,6 @@ on:
         description: "Log Analytics Workspace ID"
 
 jobs:
-  # Alert rules used to be deployed here via Initialize-PlatformTeamsNotificationApi.ps1 (AppInsights
-  # scheduledQueryRules bicep). Alerting now lives in devops/dash0/check-rules/ as code, synced
-  # per environment below via the Dash0 CLI, using Dash0 secrets pulled from uni-core-platform-kv.
   initialize_workload:
     name: Initialize Workload for ${{ inputs.environment }}
     environment: ${{ inputs.environment }}
@@ -78,12 +75,13 @@ jobs:
       - name: setup dash0 cli
         uses: dash0hq/dash0-cli/.github/actions/setup@main
         with:
-          # dash0-endpoint/dash0-metrics-endpoint in uni-core-platform-kv are OTLP ingest endpoints
-          # (host:port, no scheme) for pushing telemetry; the CLI's own REST API lives at api-url,
-          # which requires a scheme and is not one of the KV secrets.
           api-url: https://api.eu-west-1.aws.dash0.com
           otlp-url: ${{ env.DASH0_OTLP_URL }}
           auth-token: ${{ env.DASH0_AUTH_TOKEN }}
           dataset: platform-${{ inputs.environment }}
+
+      - name: sync dash0 notification channels
+        run: dash0 apply -f devops/dash0/notification-channels/apps-team.${{ inputs.environment }}.yaml
+
       - name: sync dash0 check rules
         run: dash0 apply -f devops/dash0/check-rules/exception-detected-alert.${{ inputs.environment }}.yaml
