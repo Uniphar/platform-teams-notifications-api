@@ -84,6 +84,6 @@ jobs:
           api-url: https://api.eu-west-1.aws.dash0.com
           otlp-url: ${{ env.DASH0_OTLP_URL }}
           auth-token: ${{ env.DASH0_AUTH_TOKEN }}
-
+          dataset: platform-${{ inputs.environment }}
       - name: sync dash0 check rules
         run: dash0 apply -f devops/dash0/check-rules/exception-detected-alert.${{ inputs.environment }}.yaml
