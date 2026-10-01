@@ -183,22 +183,3 @@ In brief:
 2. Replace the `manifest.id`, `bots.botId`, and `webApplicationInfo.id` with the App ID of the bot service you deployed in step 1 (this is the **Microsoft App ID** shown under **Bot Services → Configuration**).
 3. Submit the app for approval.
 4. Approve the pending app at [https://admin.teams.microsoft.com/policies/manage-apps](https://admin.teams.microsoft.com/policies/manage-apps) (requires Teams admin or PIM elevation). Filter by **Custom app** or search by name. Propagation can take a few hours; using Teams in the browser tends to be faster.
-
----
-
-## 5. Alert Rules (Dash0 Check Rules as Code)
-
-Alert rules are no longer deployed via bicep/Log Analytics. They are defined as Dash0 `PrometheusRule` check-rule documents under `devops/dash0/check-rules/`, one file per environment (`exception-detected-alert.{dev,test,prod}.yaml`), and synced per environment by the `initialize_workload` job in [`shared-app-initialization-workflow.yaml`](../.github/workflows/shared-app-initialization-workflow.yaml) using the [Dash0 CLI](https://www.dash0.com/docs/dash0/miscellaneous/tooling/dash0-cli/about) — the same job that previously ran `Initialize-PlatformTeamsNotificationApi.ps1`.
-
-The Dash0 CLI's REST API endpoint is `https://api.eu-west-1.aws.dash0.com` (hardcoded in the workflow — it requires a scheme and isn't one of the KV secrets). The OTLP ingest endpoint and per-environment auth tokens are pulled from the `uni-core-platform-kv` Key Vault at run time (`dash0-endpoint`, `dash0-platform-authorization-secret-{dev,test,prod}`) — nothing Dash0-related is stored as a GitHub Actions secret/variable.
-
-To update an alert: edit the relevant `devops/dash0/check-rules/exception-detected-alert.<environment>.yaml` file and push to `main` (or run the workflow manually) — the CI job applies it with `dash0 apply -f devops/dash0/check-rules/exception-detected-alert.<environment>.yaml`.
-
-To apply locally, authenticate with the Dash0 CLI (using the same `uni-core-platform-kv` secrets above) and run:
-
-```bash
-dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.yaml --dry-run   # preview
-dash0 apply -f devops/dash0/check-rules/exception-detected-alert.$ENVIRONMENT.yaml             # apply
-```
-
-Routing to the team is label-based (the `environment` label on each check rule). Each environment also has its own `Dash0NotificationChannel` document under `devops/dash0/notification-channels/apps-team.{dev,test,prod}.yaml` (email, mirroring frontgate's `apps-team-{dev,test,prod}` channels) that routes on `dash0.failed_check.max_status` + `environment` — synced the same way, before the check rules, in the same CI job.

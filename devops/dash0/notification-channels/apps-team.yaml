@@ -1,9 +1,9 @@
 apiVersion: dash0.com/v1alpha1
 kind: Dash0NotificationChannel
 metadata:
-  name: platform-teams-notification-api-apps-team-test
+  name: platform-teams-notification-api-apps-team-__ENVIRONMENT__
   labels:
-    dash0.com/origin: platform-teams-notification-api-apps-team-test
+    dash0.com/origin: platform-teams-notification-api-apps-team-__ENVIRONMENT__
 spec:
   type: email_v2
   config:
@@ -25,4 +25,4 @@ spec:
         - key: environment
           operator: is_one_of
           values:
-            - test
+            - __ENVIRONMENT__

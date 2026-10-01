@@ -81,7 +81,11 @@ jobs:
           dataset: platform-${{ inputs.environment }}
 
       - name: sync dash0 notification channels
-        run: dash0 apply -f devops/dash0/notification-channels/apps-team.${{ inputs.environment }}.yaml
+        run: |
+          sed "s/__ENVIRONMENT__/${{ inputs.environment }}/g" devops/dash0/notification-channels/apps-team.yaml > "$RUNNER_TEMP/apps-team.yaml"
+          dash0 apply -f "$RUNNER_TEMP/apps-team.yaml"
 
       - name: sync dash0 check rules
-        run: dash0 apply -f devops/dash0/check-rules/exception-detected-alert.${{ inputs.environment }}.yaml
+        run: |
+          sed "s/__ENVIRONMENT__/${{ inputs.environment }}/g" devops/dash0/check-rules/exception-detected-alert.yaml > "$RUNNER_TEMP/exception-detected-alert.yaml"
+          dash0 apply -f "$RUNNER_TEMP/exception-detected-alert.yaml"
