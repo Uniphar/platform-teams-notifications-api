@@ -15,6 +15,7 @@ spec:
           annotations:
             summary: "Unhandled exception detected in platform-teams-notification-api (__ENVIRONMENT__)"
             description: "One or more spans with ERROR status were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 5 minutes."
+            dash0.com/notification-channel-ids: platform-teams-notification-api-apps-team-__ENVIRONMENT__
           labels:
             environment: __ENVIRONMENT__
             service: platform-teams-notification-api
