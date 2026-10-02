@@ -160,7 +160,7 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
 
             if (!action.TryGetProperty("data", out var dataElement) || dataElement.ValueKind != JsonValueKind.Object) continue;
 
-            yield return new(verb, Regex.Replace(dataElement.GetRawText(), @"\r\n?|\n", string.Empty));
+            yield return new(verb!, Regex.Replace(dataElement.GetRawText(), @"\r\n?|\n", string.Empty));
         }
     }
 
