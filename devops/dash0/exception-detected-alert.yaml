@@ -20,13 +20,3 @@ spec:
           labels:
             environment: __ENVIRONMENT__
             service: platform-teams-notification-api
-        - alert: Teams Notifications Api Exception Detected - Logs (__ENVIRONMENT__)
-          expr: sum by (service_name, k8s_pod_name) (increase({otel_metric_name="dash0.logs", service_name="platform-teams-notification-api", otel_log_severity_range="FATAL"}[5m])) > 0
-          for: 0m
-          annotations:
-            summary: "FATAL log detected in platform-teams-notification-api (__ENVIRONMENT__)"
-            description: "One or more FATAL logs were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 5 minutes. Open the 'Teams Notifications Api Fatal Logs (__ENVIRONMENT__)' view to see them."
-            dash0.com/notification-channel-ids: platform-teams-notification-api-apps-team-__ENVIRONMENT__
-          labels:
-            environment: __ENVIRONMENT__
-            service: platform-teams-notification-api
