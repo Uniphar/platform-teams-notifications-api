@@ -2,12 +2,14 @@ apiVersion: operator.dash0.com/v1alpha1
 kind: Dash0View
 metadata:
   name: platform-teams-notification-api-exceptions-__ENVIRONMENT__
+  annotations:
+    dash0.com/folder-path: "/Teams Notifications Api"
   labels:
     dash0.com/id: platform-teams-notification-api-exceptions-__ENVIRONMENT__
 spec:
   type: spans
   display:
-    name: Teams Notifications Api Exceptions (__ENVIRONMENT__)
+    name: Exceptions
     description: Spans with ERROR status for platform-teams-notification-api, grouped by span name.
   filter:
     - key: service.name
