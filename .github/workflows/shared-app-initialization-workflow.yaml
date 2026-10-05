@@ -59,33 +59,25 @@ jobs:
         with:
           inlineScript: |
             $authTokenSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-platform-authorization-secret-${{ inputs.environment }}'
-            $otlpUrlSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-endpoint'
 
             $authToken = ConvertFrom-SecureString $authTokenSecret.SecretValue -AsPlainText
-            $otlpUrl = ConvertFrom-SecureString $otlpUrlSecret.SecretValue -AsPlainText
 
             Write-Output "::add-mask::$authToken"
 
             echo "DASH0_AUTH_TOKEN=$authToken" >> $env:GITHUB_ENV
-            echo "DASH0_OTLP_URL=$otlpUrl" >> $env:GITHUB_ENV
           azPSVersion: "latest"
           errorActionPreference: "stop"
           failOnStandardError: true
 
-      - name: setup dash0 cli
-        uses: dash0hq/dash0-cli/.github/actions/setup@main
+      - name: replace environment tokens in dash0 assets
+        run: find devops/dash0 -name '*.yaml' -exec sed -i "s/__ENVIRONMENT__/${{ inputs.environment }}/g" {} +
+
+      - name: sync dash0 assets
+        uses: dash0hq/dash0-cli/.github/actions/sync-assets@main
         with:
           api-url: https://api.eu-west-1.aws.dash0.com
-          otlp-url: ${{ env.DASH0_OTLP_URL }}
           auth-token: ${{ env.DASH0_AUTH_TOKEN }}
           dataset: platform-${{ inputs.environment }}
-
-      - name: sync dash0 notification channels
-        run: |
-          sed "s/__ENVIRONMENT__/${{ inputs.environment }}/g" devops/dash0/notification-channels/apps-team.yaml > "$RUNNER_TEMP/apps-team.yaml"
-          dash0 apply -f "$RUNNER_TEMP/apps-team.yaml"
-
-      - name: sync dash0 check rules
-        run: |
-          sed "s/__ENVIRONMENT__/${{ inputs.environment }}/g" devops/dash0/check-rules/exception-detected-alert.yaml > "$RUNNER_TEMP/exception-detected-alert.yaml"
-          dash0 apply -f "$RUNNER_TEMP/exception-detected-alert.yaml"
+          path: devops/dash0/
+          # deletion detection is off: the git history contains __ENVIRONMENT__ placeholders, not the applied asset names
+          since: none

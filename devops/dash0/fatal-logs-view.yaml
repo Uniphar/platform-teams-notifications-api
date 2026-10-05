@@ -1,0 +1,21 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-fatal-logs-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-fatal-logs-__ENVIRONMENT__
+spec:
+  type: logs
+  display:
+    name: Teams Notifications Api Fatal Logs (__ENVIRONMENT__)
+    description: FATAL log records for platform-teams-notification-api. Excludes custom events, which CustomEventTelemetryClient emits as LogCritical for the legacy App Insights path.
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: otel.log.severity.range
+      operator: is
+      value: FATAL
+    - key: "{OriginalFormat}"
+      operator: does_not_match
+      value: "{microsoft.custom_event.name}"

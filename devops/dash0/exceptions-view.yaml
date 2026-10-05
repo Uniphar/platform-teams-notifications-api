@@ -1,0 +1,20 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-exceptions-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-exceptions-__ENVIRONMENT__
+spec:
+  type: spans
+  display:
+    name: Teams Notifications Api Exceptions (__ENVIRONMENT__)
+    description: Spans with ERROR status for platform-teams-notification-api, grouped by span name.
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: otel.span.status.code
+      operator: is
+      value: ERROR
+  groupBy:
+    - dash0.span.name

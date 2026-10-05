@@ -1,0 +1,26 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-processing-errors-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-processing-errors-__ENVIRONMENT__
+spec:
+  type: spans
+  display:
+    name: Teams Notifications Api Processing Errors (__ENVIRONMENT__)
+    description: Custom events signalling failures — Logic App file reprocessing, failed file uploads, failed card-resolved publishes and invalid operations caused by callers. Error, StatusCode, Team and Channel details are span tags.
+  groupBy:
+    - event.name
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: event.name
+      operator: is_one_of
+      values:
+        - LogAppProcessFile_NoChannelName
+        - LogAppProcessFileUploadFailed
+        - LogAppProcessFileError
+        - TeamsCardResolvedPublishFailed
+        - FileUploadFailed
+        - InvalidOperationByUser

@@ -1,0 +1,29 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-card-operations-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-card-operations-__ENVIRONMENT__
+spec:
+  type: spans
+  display:
+    name: Teams Notifications Api Card Operations (__ENVIRONMENT__)
+    description: Normal card/message lifecycle events (channel and chat messages created, updated, deleted, actions removed, reprocessed files). Duration (ms), Team, Channel and UniqueId are span tags — sort on Duration to find slow Teams calls.
+  groupBy:
+    - event.name
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: event.name
+      operator: is_one_of
+      values:
+        - ChannelNewMessage
+        - ChannelUpdateMessage
+        - ChannelDeleteMessage
+        - ChannelGetCard
+        - ChannelUpdateCardRemoveActions
+        - ChatNewMessage
+        - ChatUpdateMessage
+        - ReprocessFileSuccess
+        - TeamsCardResolvedPublished

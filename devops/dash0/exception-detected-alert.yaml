@@ -1,0 +1,32 @@
+﻿apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-teams-notification-api-exception-detected-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-exception-detected-__ENVIRONMENT__
+spec:
+  groups:
+    - name: Alerting
+      interval: 1m
+      rules:
+        - alert: Teams Notifications Api Exception Detected - Spans (__ENVIRONMENT__)
+          # alerts on recorded exceptions directly (not span ERROR status); cancellation exceptions from pod restarts are excluded as noise
+          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", exception!="", exception!~`System\.OperationCanceledException|System\.Threading\.Tasks\.TaskCanceledException`}[2m])) > 2
+          for: 0m
+          annotations:
+            summary: "Exceptions detected in platform-teams-notification-api (__ENVIRONMENT__)"
+            description: "More than 2 exceptions were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 2 minutes. Open the 'Teams Notifications Api Exceptions (__ENVIRONMENT__)' view in Tracing to see the actual exception spans."
+            dash0.com/notification-channel-ids: platform-teams-notification-api-apps-team-__ENVIRONMENT__
+          labels:
+            environment: __ENVIRONMENT__
+            service: platform-teams-notification-api
+        - alert: Teams Notifications Api Exception Detected - Logs (__ENVIRONMENT__)
+          expr: sum by (service_name, k8s_pod_name) (increase({otel_metric_name="dash0.logs", service_name="platform-teams-notification-api", otel_log_severity_range="FATAL"}[5m])) > 0
+          for: 0m
+          annotations:
+            summary: "FATAL log detected in platform-teams-notification-api (__ENVIRONMENT__)"
+            description: "One or more FATAL logs were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 5 minutes. Open the 'Teams Notifications Api Fatal Logs (__ENVIRONMENT__)' view to see them."
+            dash0.com/notification-channel-ids: platform-teams-notification-api-apps-team-__ENVIRONMENT__
+          labels:
+            environment: __ENVIRONMENT__
+            service: platform-teams-notification-api
