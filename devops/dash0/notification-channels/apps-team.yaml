@@ -8,13 +8,13 @@ spec:
   type: email_v2
   config:
     recipients:
-      - rmjoia@uniphar.ie
-      - aandrei@uniphar.ie
-      - drodrigues@uniphar.ie
-      - ohaken@uniphar.ie
+      # - rmjoia@uniphar.ie
+      # - aandrei@uniphar.ie
+      # - drodrigues@uniphar.ie
+      # - ohaken@uniphar.ie
       - dkoek@uniphar.ie
-      - hhudo@uniphar.ie
-      - bgeneralov@uniphar.ie
+      # - hhudo@uniphar.ie
+      # - bgeneralov@uniphar.ie
   frequency: 0s
   routing:
     filters:
