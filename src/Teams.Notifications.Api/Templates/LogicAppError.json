@@ -17,6 +17,12 @@
     },
     {
       "type": "TextBlock",
+      "text": "**FailedFile:** {{FileName:file?}}",
+      "wrap": true,
+      "spacing": "none"
+    },
+    {
+      "type": "TextBlock",
       "weight": "bolder",
       "color": "attention",
       "text": "**Type of error:** {{ObjectType:string?}}",
@@ -54,28 +60,6 @@
       "type": "Action.OpenUrl",
       "url": "{{FileUrl:file?}}",
       "title": "📂 Download file"
-    },
-    {
-      "type": "Action.ShowCard",
-      "card": {
-        "type": "AdaptiveCard",
-        "version": "1.5",
-        "body": [
-          {
-            "type": "TextBlock",
-            "text": "**Original blob given to Logic App:** `{{OriginalBlobUri:string?}}`",
-            "wrap": true,
-            "spacing": "none"
-          },
-          {
-            "type": "TextBlock",
-            "text": "**Original file given to Logic App (may no longer exist):** {{FileName:file?}}",
-            "wrap": true,
-            "spacing": "none"
-          }
-        ]
-      },
-      "title": "🔍 Show more"
     }
   ]
 }
