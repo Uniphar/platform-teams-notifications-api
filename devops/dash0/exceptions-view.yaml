@@ -19,4 +19,4 @@ spec:
       operator: is
       value: ERROR
   groupBy:
-    - dash0.span.name
+    - otel.span.status.message
