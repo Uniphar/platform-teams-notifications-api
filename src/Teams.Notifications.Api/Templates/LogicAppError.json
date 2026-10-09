@@ -4,8 +4,8 @@
   "body": [
     {
       "type": "TextBlock",
-      "size": "medium",
-      "weight": "bolder",
+      "size": "Medium",
+      "weight": "Bolder",
       "text": "**LogicAppFlow:** {{LogicAppFlow:string?}}",
       "wrap": true
     },
@@ -13,34 +13,59 @@
       "type": "TextBlock",
       "text": "**Timestamp:** {{TimeStamp:string?}}",
       "wrap": true,
-      "spacing": "none"
+      "spacing": "None"
     },
     {
       "type": "TextBlock",
-      "text": "**FailedFile:** {{FileName:file?}}",
+      "text": "**Run ID:** {{Failedjobid:string}}",
       "wrap": true,
-      "spacing": "none"
+      "spacing": "None"
     },
     {
       "type": "TextBlock",
-      "weight": "bolder",
-      "color": "attention",
-      "text": "**Type of error:** {{ObjectType:string?}}",
+      "text": "**FileName:** {{FileName:file?}}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "**FileURI:** {{FailedFileUri:string?}}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Source:** {{Source:string?}}",
+      "wrap": true,
+      "spacing": "None"
+    },
+    {
+      "type": "TextBlock",
+      "text": "**Destination:** {{Destination:string?}}",
+      "wrap": true,
+      "spacing": "None"
+    },
+
+    {
+      "type": "TextBlock",
+      "weight": "Bolder",
+      "color": "Attention",
+      "text": "**Status:** {{ObjectType:string?}}",
       "wrap": true
     },
     {
       "type": "TextBlock",
-      "weight": "bolder",
+      "weight": "Bolder",
       "text": "**Error:**",
       "wrap": true,
-      "spacing": "medium"
+      "spacing": "Medium"
     },
     {
       "type": "TextBlock",
-      "color": "attention",
+      "color": "Attention",
       "text": "{{ErrorMessage:string?}}",
       "wrap": true,
-      "spacing": "none"
+      "spacing": "None"
     }
   ],
   "actions": [
@@ -61,5 +86,6 @@
       "url": "{{FileUrl:file?}}",
       "title": "📂 Download file"
     }
-  ]
+  ],
+  "$schema": "https://adaptivecards.io/schemas/adaptive-card.json"
 }
