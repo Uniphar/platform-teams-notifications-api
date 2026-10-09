@@ -196,8 +196,10 @@ public sealed class TeamsNotificationApiIntegrationTests
         while (DateTimeOffset.UtcNow < timeoutAt)
         {
             var message = await receiver.ReceiveMessageAsync(TimeSpan.FromSeconds(10), cancellationToken);
-            if (message is null) Assert.Fail("There should always be a message");
+            // Events are published asynchronously, keep polling until the overall timeout
+            if (message is null) continue;
 
+            await receiver.CompleteMessageAsync(message, cancellationToken);
             if (!string.Equals(message.Subject, expectedSubject, StringComparison.Ordinal)) continue;
             var body = await JsonSerializer.DeserializeAsync<TeamsCardCreatedCommand>(message.Body.ToStream(), cancellationToken: cancellationToken);
             if (body is null) Assert.Fail("There should always be a body");
