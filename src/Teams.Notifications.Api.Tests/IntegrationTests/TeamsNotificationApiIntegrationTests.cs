@@ -1,7 +1,7 @@
-using Azure.Messaging.ServiceBus;
-using Azure.Messaging.ServiceBus.Administration;
 using System.Data;
 using System.Text.Json;
+using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus.Administration;
 using Teams.Notifications.Api.Commands;
 using Teams.Notifications.Api.Tests.TeamsClient;
 using IntegrationSuiteErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.IntegrationSuiteErrorModel;
@@ -111,6 +111,7 @@ public sealed class TeamsNotificationApiIntegrationTests
         var model = new LogicAppErrorRequest
         {
             UniqueId = uniqueId,
+            FailedJobId = "job-1",
             LogicAppFlow = "Teams notification API integration test",
             TimeStamp = DateTime.UtcNow.ToString("O"),
             OriginalBlobUri = "https://storage.example.test/blob.csv",
