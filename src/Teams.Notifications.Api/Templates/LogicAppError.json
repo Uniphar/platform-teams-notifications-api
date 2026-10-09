@@ -17,7 +17,7 @@
     },
     {
       "type": "TextBlock",
-      "text": "**Run ID:** {{Failedjobid:string}}",
+      "text": "**Run ID:** {{FailedJobId:string}}",
       "wrap": true,
       "spacing": "none"
     },

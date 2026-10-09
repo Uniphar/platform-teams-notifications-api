@@ -162,6 +162,7 @@ public class CardManagerServiceTests
     {
         var model = new LogicAppErrorModel
         {
+            FailedJobId = "job-1",
             TimeStamp = "01-01-1960",
             ObjectType = "test",
             ErrorMessage = "This request is not authorized to perform this operation using this permission.\\nRequestId:e4669c49-a002-0049-449a-17061a000000\\nTime:2025-08-27T21:34:16.5796961Z\",\"This request is not authorized to perform this operation using this permission.\\nRequestId:77c89d5a-9002-0042-359a-17fd71000000\\nTime:2025-08-27T21:34:18.5359065Z",
