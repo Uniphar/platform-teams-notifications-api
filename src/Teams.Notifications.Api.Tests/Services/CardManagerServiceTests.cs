@@ -175,8 +175,8 @@ public class CardManagerServiceTests
         Assert.IsNotEmpty(result);
         var item = AdaptiveCard.FromJson(result).Card;
         Assert.IsNotNull(item.Body);
-        // 5 items should be left since the rest should be removed
-        Assert.HasCount(5, item.Body);
+        // 5 template items remain (the rest are removed) plus the hidden footer block added by the service
+        Assert.HasCount(6, item.Body);
         foreach (var element in item.Body)
         {
             switch (element)
