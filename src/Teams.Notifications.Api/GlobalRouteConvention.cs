@@ -7,13 +7,13 @@ internal sealed class GlobalRouteConvention(string routePrefix) : IApplicationMo
         var prefixSelector = AttributeRouteModel.CombineTemplates(routePrefix, string.Empty);
 
         foreach (var controller in application.Controllers)
-            foreach (var selector in controller.Selectors)
-            {
-                selector.AttributeRouteModel = selector.AttributeRouteModel is null
-                    ? new() { Template = prefixSelector }
-                    : AttributeRouteModel.CombineAttributeRouteModel(
-                        new() { Template = routePrefix },
-                        selector.AttributeRouteModel);
-            }
+        foreach (var selector in controller.Selectors)
+        {
+            selector.AttributeRouteModel = selector.AttributeRouteModel is null
+                ? new() { Template = prefixSelector }
+                : AttributeRouteModel.CombineAttributeRouteModel(
+                    new() { Template = routePrefix },
+                    selector.AttributeRouteModel);
+        }
     }
 }

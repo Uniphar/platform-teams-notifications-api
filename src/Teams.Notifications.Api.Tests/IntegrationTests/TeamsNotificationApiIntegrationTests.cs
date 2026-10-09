@@ -25,11 +25,7 @@ public sealed class TeamsNotificationApiIntegrationTests
     private static string _channelTeamName = string.Empty;
     private static string _serviceBusNamespace = string.Empty;
 
-    [ClassCleanup]
-    public static async Task ClassCleanup()
-    {
-        await DeleteSubscriptionIfPresentAsync(_subscriptionName);
-    }
+    [ClassCleanup] public static Task ClassCleanup() => DeleteSubscriptionIfPresentAsync(_subscriptionName);
 
     [ClassInitialize]
     public static async Task ClassInitialize(TestContext context)

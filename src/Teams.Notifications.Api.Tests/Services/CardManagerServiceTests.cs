@@ -5,11 +5,11 @@ namespace Teams.Notifications.Api.Tests.Services;
 public class CardManagerServiceTests
 {
     private readonly Mock<IChannelAdapter> _adapterMock;
+    private readonly Mock<ITeamsCardEventPublisher> _cardEventPublisherMock;
     private readonly Mock<IConfiguration> _configMock;
     private readonly Mock<ILogger<CardManagerService>> _loggerMock;
     private readonly Mock<ICosmosMessageStore> _messageStoreMock;
     private readonly Mock<ITeamsManagerService> _teamsManagerServiceMock;
-    private readonly Mock<ITeamsCardEventPublisher> _cardEventPublisherMock;
     private readonly Mock<ICustomEventTelemetryClient> _telemetryMock;
 
     public CardManagerServiceTests()
@@ -111,7 +111,7 @@ public class CardManagerServiceTests
                 It.IsAny<ConversationReference>(),
                 It.IsAny<AgentCallbackHandler>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(async (ClaimsIdentity _, ConversationReference _, AgentCallbackHandler callback, CancellationToken ct) =>
+            .Returns((ClaimsIdentity _, ConversationReference _, AgentCallbackHandler callback, CancellationToken ct) =>
             {
                 var turnContext = new Mock<ITurnContext>();
                 turnContext
@@ -121,7 +121,7 @@ public class CardManagerServiceTests
                     .Setup(t => t.UpdateActivityAsync(It.IsAny<IActivity>(), ct))
                     .ReturnsAsync(new ResourceResponse("msg-1"));
 
-                await callback(turnContext.Object, ct);
+                return callback(turnContext.Object, ct);
             });
 
         // Act
@@ -186,15 +186,15 @@ public class CardManagerServiceTests
                     Assert.DoesNotContain("}}", textBlock.Text, "No template string should be found!, found: {0}", textBlock.Text);
                     break;
                 case AdaptiveFactSet adaptiveSet:
+                {
+                    foreach (var fact in adaptiveSet.Facts)
                     {
-                        foreach (var fact in adaptiveSet.Facts)
-                        {
-                            Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                            Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
-                        }
-
-                        break;
+                        Assert.DoesNotContain("{{", fact.Value, "No template string should be found!, found: {0}", fact.Value);
+                        Assert.DoesNotContain("}}", fact.Value, "No template string should be found!, found: {0}", fact.Value);
                     }
+
+                    break;
+                }
             }
         }
     }

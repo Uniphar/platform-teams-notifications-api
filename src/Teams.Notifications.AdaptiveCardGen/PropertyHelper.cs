@@ -15,9 +15,9 @@ internal static class PropertyHelper
         using var doc = JsonDocument.Parse(json);
 
         return (from property in doc.RootElement.EnumerateObject()
-                let value = property.Value.GetString()
-                where !string.IsNullOrWhiteSpace(value)
-                select new PropWithMustache { Property = property.Name, MustacheProperties = value.GetMustachePropertiesFromString().FirstOrDefault() }).ToList();
+            let value = property.Value.GetString()
+            where !string.IsNullOrWhiteSpace(value)
+            select new PropWithMustache { Property = property.Name, MustacheProperties = value.GetMustachePropertiesFromString().FirstOrDefault() }).ToList();
     }
 
     /// <summary>
