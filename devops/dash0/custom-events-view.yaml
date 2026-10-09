@@ -1,0 +1,21 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-custom-events-__ENVIRONMENT__
+  annotations:
+    dash0.com/folder-path: "/Teams Notifications Api"
+  labels:
+    dash0.com/id: platform-teams-notification-api-custom-events-__ENVIRONMENT__
+spec:
+  type: spans
+  display:
+    name: Custom Events
+    description: All custom events emitted by platform-teams-notification-api (TrackEvent spans), grouped by event name. Event properties (Team, Channel, MessageId, UniqueId, Duration, ...) are span tags.
+  groupBy:
+    - event.name
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: event.name
+      operator: is_set

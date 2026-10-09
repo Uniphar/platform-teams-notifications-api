@@ -16,6 +16,9 @@ on:
       AZURE_SUBSCRIPTION_ID:
         required: true
         description: "Azure Subscription ID"
+      AZURE_PLATFORM_SUBSCRIPTION_ID:
+        required: true
+        description: "Azure Platform Subscription ID (hosts uni-core-platform-kv, where the Dash0 secrets live)"
     inputs:
       environment:
         type: string
@@ -48,24 +51,33 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          subscription-id: ${{ secrets.AZURE_PLATFORM_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
-      - name: run domain powershell
+      - name: fetch dash0 secrets from key vault
         uses: azure/powershell@v3
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} #required for gh cli to determine "current PR"
-          SERVICE_PRINCIPAL_NAME: ${{ vars.SERVICE_PRINCIPAL_NAME }}
-          RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_NAME }}
-          LOG_ANALYTICS_WORKSPACE_ID: ${{ vars.LOG_ANALYTICS_WORKSPACE_ID }}
         with:
           inlineScript: |
-            . ./devops/Initialize-PlatformTeamsNotificationApi.ps1
-            Initialize-PlatformTeamsNotificationApi `
-              -Environment '${{ inputs.environment }}' `
-              -SubscriptionId '${{ secrets.AZURE_SUBSCRIPTION_ID }}' `
-              -ResourceGroupName '${{ inputs.RESOURCE_GROUP_NAME }}' `
-              -LogAnalyticsWorkspaceId '${{ inputs.LOG_ANALYTICS_WORKSPACE_ID }}'
+            $authTokenSecret = Get-AzKeyVaultSecret -VaultName uni-core-platform-kv -Name 'dash0-platform-authorization-secret-${{ inputs.environment }}'
+
+            $authToken = ConvertFrom-SecureString $authTokenSecret.SecretValue -AsPlainText
+
+            Write-Output "::add-mask::$authToken"
+
+            echo "DASH0_AUTH_TOKEN=$authToken" >> $env:GITHUB_ENV
           azPSVersion: "latest"
           errorActionPreference: "stop"
           failOnStandardError: true
+
+      - name: replace environment tokens in dash0 assets
+        run: find devops/dash0 -name '*.yaml' -exec sed -i "s/__ENVIRONMENT__/${{ inputs.environment }}/g" {} +
+
+      - name: sync dash0 assets
+        uses: dash0hq/dash0-cli/.github/actions/sync-assets@main
+        with:
+          api-url: https://api.eu-west-1.aws.dash0.com
+          auth-token: ${{ env.DASH0_AUTH_TOKEN }}
+          dataset: platform-${{ inputs.environment }}
+          path: devops/dash0/
+          # deletion detection is off: the git history contains __ENVIRONMENT__ placeholders, not the applied asset names
+          since: none

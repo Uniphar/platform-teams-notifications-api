@@ -21,7 +21,7 @@ The API communicates with Teams via an Azure Bot Service. The bot's identity is 
 
 ### 1a. Deploy the Bot Service
 
-The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are deployed separately via `devops/alerts.bicep` (see step 5).
+The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are managed separately as Dash0 check rules (see step 5).
 
 ```bash
 ENVIRONMENT=dev          # dev | test | prod
@@ -47,8 +47,6 @@ az deployment group create \
     endpoint="https://api.${ENVIRONMENT}.uniphar.ie/platform-teams-notification-api/api/messages" \
     logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
 ```
-
-> **Note:** The `alerts.bicep` template assumes action groups named `platform-engineering-applications-low` and `platform-engineering-applications-high` exist in a resource group called `observability` within the same subscription. These must be in place before deploying alert rules.
 
 ---
 
@@ -107,8 +105,10 @@ $permissions = @(
     "User.Read.All"
 )
 
-$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
-if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
+
+if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+
 $graphSp = Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $roles   = $graphSp.AppRole | Where-Object { $permissions -contains $_.Value }
 
@@ -183,19 +183,3 @@ In brief:
 2. Replace the `manifest.id`, `bots.botId`, and `webApplicationInfo.id` with the App ID of the bot service you deployed in step 1 (this is the **Microsoft App ID** shown under **Bot Services → Configuration**).
 3. Submit the app for approval.
 4. Approve the pending app at [https://admin.teams.microsoft.com/policies/manage-apps](https://admin.teams.microsoft.com/policies/manage-apps) (requires Teams admin or PIM elevation). Filter by **Custom app** or search by name. Propagation can take a few hours; using Teams in the browser tends to be faster.
-
----
-
-## 5. Alert Rules Only
-
-If the bot service is already deployed and you only need to update/redeploy the alert rules, you can use the `alerts.bicep` template directly (or run `Initialize-PlatformTeamsNotificationApi.ps1`):
-
-```bash
-az deployment group create \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "deploy-$(date +%Y%m%d%H%M%S)-teams-alerts" \
-  --template-file devops/alerts.bicep \
-  --parameters \
-    environment="$ENVIRONMENT" \
-    logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
-```

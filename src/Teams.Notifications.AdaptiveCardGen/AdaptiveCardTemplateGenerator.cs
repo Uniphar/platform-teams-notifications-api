@@ -59,7 +59,7 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
     private static string GenerateActionModel(string actionModelName, List<PropWithMustache> props)
     {
         var propertiesOfTheModel = string.Join("\n",
-            props.OrderBy(x => x.Property).Select(p => $"        public {MakeRequiredIfNeeded(GetTypeFromActionModelMustache(p.MustacheProperties))} {p.Property} {{ get; set; }}"));
+            props.OrderBy(x => x.Property, StringComparer.OrdinalIgnoreCase).Select(p => $"        public {MakeRequiredIfNeeded(GetTypeFromActionModelMustache(p.MustacheProperties))} {p.Property} {{ get; set; }}"));
         return
             $$"""
               #nullable enable
@@ -96,7 +96,7 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
         // key is the prop name, value the type, since keys are distinct by nature in Dictionaries
         var propertiesOfTheModel = string.Join("\n",
             props
-                .OrderBy(x => x.Value)
+                .OrderBy(x => x.Value, StringComparer.OrdinalIgnoreCase)
                 .Select(p => $"        public {MakeRequiredIfNeeded(p.Value)} {p.Key} {{ get; set; }}"));
 
         return
@@ -160,7 +160,7 @@ public class AdaptiveCardTemplateGenerator : IIncrementalGenerator
 
             if (!action.TryGetProperty("data", out var dataElement) || dataElement.ValueKind != JsonValueKind.Object) continue;
 
-            yield return new(verb, Regex.Replace(dataElement.GetRawText(), @"\r\n?|\n", string.Empty));
+            yield return new(verb!, Regex.Replace(dataElement.GetRawText(), @"\r\n?|\n", string.Empty));
         }
     }
 
