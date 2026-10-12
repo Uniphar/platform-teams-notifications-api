@@ -10,9 +10,7 @@ spec:
   type: spans
   display:
     name: Custom Events
-    description: All custom events emitted by platform-teams-notification-api (TrackEvent spans), grouped by event name. Event properties (Team, Channel, MessageId, UniqueId, Duration, ...) are span tags.
-  groupBy:
-    - event.name
+    description: All custom events emitted by platform-teams-notification-api (TrackEvent spans). Event properties (Team, Channel, MessageId, UniqueId, Duration, ...) are span tags.
   filter:
     - key: service.name
       operator: is
