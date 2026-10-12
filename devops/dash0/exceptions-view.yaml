@@ -21,6 +21,9 @@ spec:
     - key: error.type
       operator: does_not_match
       value: "\\d{3}"
+    - key: otel.span.status.message
+      operator: does_not_match
+      value: ".*(OperationCanceledException|TaskCanceledException).*"
   table:
     columns:
       - colSize: min-content
