@@ -23,3 +23,24 @@ spec:
       value: "\\d{3}"
   groupBy:
     - otel.span.status.message
+  table:
+    columns:
+      - colSize: min-content
+        key: otel.span.start_time
+        label: Start Time
+      - colSize: minmax(auto, 1fr)
+        key: dash0.span.name
+        label: Operation
+      - colSize: minmax(auto, 1fr)
+        key: error.type
+        label: Exception Type
+      - colSize: minmax(auto, 2fr)
+        key: otel.span.status.message
+        label: Message
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+      - key: dash0.view.builtin.span_events
+    sort:
+      - direction: descending
+        key: otel.span.start_time

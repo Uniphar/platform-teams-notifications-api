@@ -19,3 +19,50 @@ spec:
       value: platform-teams-notification-api
     - key: event.name
       operator: is_set
+  table:
+    columns:
+      - colSize: minmax(auto, 2fr)
+        key: event.name
+        label: Custom Event
+      - colSize: min-content
+        key: otel.span.start_time
+        label: Start Time
+      - colSize: minmax(auto, 1fr)
+        key: Team
+        label: Team
+      - colSize: minmax(auto, 1fr)
+        key: Channel
+        label: Channel
+      - colSize: minmax(auto, 1fr)
+        key: TeamId
+        label: Team Id
+      - colSize: minmax(auto, 1fr)
+        key: ChannelId
+        label: Channel Id
+      - colSize: minmax(auto, 1fr)
+        key: MessageId
+        label: Message Id
+      - colSize: minmax(auto, 1fr)
+        key: UniqueId
+        label: Unique Id
+      - colSize: minmax(auto, 1fr)
+        key: FileName
+        label: File Name
+      - colSize: 8rem
+        key: Duration
+        label: Duration (ms)
+      - colSize: minmax(auto, 1fr)
+        key: ExceptionType
+        label: Exception Type
+      - colSize: minmax(auto, 2fr)
+        key: ErrorMessage
+        label: Error Message
+      - colSize: 6rem
+        key: StatusCode
+        label: Status
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+    sort:
+      - direction: descending
+        key: otel.span.start_time

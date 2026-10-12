@@ -21,3 +21,29 @@ spec:
     - key: "{OriginalFormat}"
       operator: does_not_match
       value: "{microsoft.custom_event.name}"
+  table:
+    columns:
+      - colSize: min-content
+        key: otel.log.time
+        label: Time
+      - colSize: min-content
+        key: service.name
+        label: Service
+      - colSize: 7rem
+        key: otel.log.severity.range
+        label: Severity
+      - colSize: minmax(auto, 4fr)
+        key: otel.log.body
+        label: Body
+      - colSize: minmax(auto, 1fr)
+        key: exception.type
+        label: Exception Type
+      - colSize: minmax(auto, 2fr)
+        key: exception.message
+        label: Exception Message
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+    sort:
+      - direction: descending
+        key: otel.log.time

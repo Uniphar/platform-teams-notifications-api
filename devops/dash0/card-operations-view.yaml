@@ -29,3 +29,47 @@ spec:
         - ChatUpdateMessage
         - ReprocessFileSuccess
         - TeamsCardResolvedPublished
+  table:
+    columns:
+      - colSize: minmax(auto, 2fr)
+        key: event.name
+        label: Operation
+      - colSize: min-content
+        key: otel.span.start_time
+        label: Start Time
+      - colSize: minmax(auto, 1fr)
+        key: Team
+        label: Team
+      - colSize: minmax(auto, 1fr)
+        key: Channel
+        label: Channel
+      - colSize: minmax(auto, 1fr)
+        key: TeamId
+        label: Team Id
+      - colSize: minmax(auto, 1fr)
+        key: ChannelId
+        label: Channel Id
+      - colSize: minmax(auto, 1fr)
+        key: MessageId
+        label: Message Id
+      - colSize: minmax(auto, 1fr)
+        key: UniqueId
+        label: Unique Id
+      - colSize: minmax(auto, 1fr)
+        key: JsonFileName
+        label: Json File
+      - colSize: 6rem
+        key: Found
+        label: Found
+      - colSize: minmax(auto, 1fr)
+        key: ActionsRemoved
+        label: Actions Removed
+      - colSize: 8rem
+        key: Duration
+        label: Duration (ms)
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+    sort:
+      - direction: descending
+        key: otel.span.start_time

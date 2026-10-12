@@ -26,3 +26,47 @@ spec:
         - TeamsCardResolvedPublishFailed
         - FileUploadFailed
         - InvalidOperationByUser
+  table:
+    columns:
+      - colSize: minmax(auto, 2fr)
+        key: event.name
+        label: Custom Event
+      - colSize: min-content
+        key: otel.span.start_time
+        label: Start Time
+      - colSize: minmax(auto, 1fr)
+        key: Team
+        label: Team
+      - colSize: minmax(auto, 1fr)
+        key: Channel
+        label: Channel
+      - colSize: minmax(auto, 1fr)
+        key: FileName
+        label: File Name
+      - colSize: minmax(auto, 1fr)
+        key: file
+        label: File
+      - colSize: minmax(auto, 1fr)
+        key: ExceptionType
+        label: Exception Type
+      - colSize: minmax(auto, 2fr)
+        key: Error
+        label: Error
+      - colSize: minmax(auto, 2fr)
+        key: ErrorMessage
+        label: Error Message
+      - colSize: minmax(auto, 2fr)
+        key: Message
+        label: Message
+      - colSize: 6rem
+        key: StatusCode
+        label: Status
+      - colSize: minmax(auto, 1fr)
+        key: NotificationScheme
+        label: Notification Scheme
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+    sort:
+      - direction: descending
+        key: otel.span.start_time
