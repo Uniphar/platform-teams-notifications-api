@@ -11,7 +11,7 @@ spec:
       rules:
         - alert: Teams Notifications Api Exception Detected - Spans (__ENVIRONMENT__)
           # alerts on recorded exceptions directly (not span ERROR status); cancellation exceptions from pod restarts are excluded as noise
-          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", error_type!~`\d{3}`, otel_span_status_message!~`.*(OperationCanceledException|TaskCanceledException).*`}[2m])) > 2
+          expr: sum(increase({otel_metric_name="dash0.spans", service_name="platform-teams-notification-api", otel_span_status_code="ERROR", error_type!~`\d{3}|ServiceBusException|BlobNotFound|HttpRequestException`, otel_span_status_message!~`OperationCanceledException|TaskCanceledException`}[2m])) > 2
           for: 0m
           annotations:
             summary: "Exceptions detected in platform-teams-notification-api (__ENVIRONMENT__)"

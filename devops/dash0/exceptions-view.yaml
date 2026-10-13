@@ -20,10 +20,10 @@ spec:
       value: ERROR
     - key: error.type
       operator: does_not_match
-      value: "\\d{3}"
+      value: "\\d{3}|ServiceBusException|BlobNotFound|HttpRequestException"
     - key: otel.span.status.message
       operator: does_not_match
-      value: ".*(OperationCanceledException|TaskCanceledException).*"
+      value: "OperationCanceledException|TaskCanceledException"
   table:
     columns:
       - colSize: min-content
