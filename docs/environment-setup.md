@@ -1,6 +1,6 @@
 # Environment Setup Guide
 
-This guide describes the manual steps to provision the infrastructure for the Platform Teams Notification API. In normal circumstances the infra team handles this. This document is intended for situations where that is not the case, or for contributors who need to understand how the environment is structured.
+This guide describes the manual steps to provision the infrastructure for the Platform Teams Notifications API. In normal circumstances the infra team handles this. This document is intended for situations where that is not the case, or for contributors who need to understand how the environment is structured.
 
 > For local development setup (dev tunnels, debug bot, appsettings, etc.) see the [README](../README.md#local-setup).
 
@@ -10,7 +10,7 @@ This guide describes the manual steps to provision the infrastructure for the Pl
 
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed and authenticated (`az login`)
 - Contributor access on the target resource group
-- Privileged Role Administrator or Global Administrator in Entra ID (for granting Graph API admin consent)
+- Privileged Role Administrator or Global Administrator in Entra ID (for granting Graph API admin consent), able to consent to the `AppRoleAssignment.ReadWrite.All` and `Application.Read.All` Graph scopes used in step 2
 - An existing AKS cluster with a workload identity service principal already configured
 
 ---
@@ -21,7 +21,7 @@ The API communicates with Teams via an Azure Bot Service. The bot's identity is 
 
 ### 1a. Deploy the Bot Service
 
-The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are deployed separately via `devops/alerts.bicep` (see step 5).
+The `devops/bot.bicep` template provisions the bot service, the Teams channel, and diagnostic settings in a single deployment. Alert rules are managed separately as Dash0 resources in `devops/dash0/` and deployed by the CD pipeline.
 
 ```bash
 ENVIRONMENT=dev          # dev | test | prod
@@ -47,8 +47,6 @@ az deployment group create \
     endpoint="https://api.${ENVIRONMENT}.uniphar.ie/platform-teams-notification-api/api/messages" \
     logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
 ```
-
-> **Note:** The `alerts.bicep` template assumes action groups named `platform-engineering-applications-low` and `platform-engineering-applications-high` exist in a resource group called `observability` within the same subscription. These must be in place before deploying alert rules.
 
 ---
 
@@ -78,12 +76,11 @@ The workload identity service principal needs the following **application** (dae
 
 ### Grant the Permissions
 
-The following PowerShell snippet uses the `Az` and `Microsoft.Graph` modules (which are already present in the environment) to assign the roles. Run it once per environment after the service principal is in place.
+The following PowerShell snippet uses the `Az` and `Microsoft.Graph` modules to assign the roles. Review the list first and remove permissions you do not need (least privilege); in particular `Chat.ReadWrite.All` and `ChannelMessage.Read.All` are very broad, and `TeamMember.ReadWrite.All` may be redundant with `Group.ReadWrite.All`. Run it once per environment after the service principal is in place.
 
 ```powershell
-# Connect — uses the same Az session already established
-$token = Get-AzAccessToken -ResourceUrl "https://graph.microsoft.com/" -AsSecureString
-Connect-MgGraph -AccessToken $token.Token -NoWelcome
+# Interactive sign-in with the scopes needed to assign app roles
+Connect-MgGraph -Scopes "AppRoleAssignment.ReadWrite.All", "Application.Read.All" -NoWelcome
 
 $servicePrincipalName = "<workload-identity-service-principal-name>"
 
@@ -107,8 +104,10 @@ $permissions = @(
     "User.Read.All"
 )
 
-$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
-if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+$sp = Get-AzADServicePrincipal -DisplayName $servicePrincipalName
+
+if (-not $sp) { throw "Service principal '$servicePrincipalName' not found." }
+
 $graphSp = Get-AzADServicePrincipal -Filter "displayName eq 'Microsoft Graph'"
 $roles   = $graphSp.AppRole | Where-Object { $permissions -contains $_.Value }
 
@@ -155,6 +154,9 @@ The steps at a high level are:
 3. Deploy the bot service pointing at your dev tunnel endpoint (see the README for tunnel setup):
 
    ```bash
+   RESOURCE_GROUP=<resource-group-name>
+   LOG_ANALYTICS_ID=<log-analytics-workspace-resource-id>
+
    az deployment group create \
      --resource-group "$RESOURCE_GROUP" \
      --name "deploy-$(date +%Y%m%d%H%M%S)-teams-debug-bot" \
@@ -167,7 +169,7 @@ The steps at a high level are:
        logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
    ```
 
-4. Grant the debug bot the same Graph permissions as the workload identity (run the same PowerShell snippet from [step 2](#2-microsoft-graph-api-permissions), substituting `platform-teams-notification-api-debug-bot` as the service principal name).
+4. Grant the debug bot only the Graph permissions it needs for local testing (run the PowerShell snippet from [step 2](#2-microsoft-graph-api-permissions) with a reduced `$permissions` list, substituting `platform-teams-notification-api-debug-bot` as the service principal name).
 
 5. Create a client secret for local use and add it to `appsettings.local.json` (see the [README](../README.md#local-setup)).
 
@@ -179,23 +181,7 @@ Once the bot service is running you need to register the Teams application. See 
 
 In brief:
 
-1. Go to [https://dev.teams.microsoft.com/apps](https://dev.teams.microsoft.com/apps) and create a new app from the manifest template in `src/Teams.Notifications.Api/appManifest/<ENV>`.
+1. Go to [https://dev.teams.microsoft.com/apps](https://dev.teams.microsoft.com/apps) and create a new app from the manifest template in `src/Teams.Notifications.Api/appManifest/<ENV>` (`dev`, `test`, `prod`, or `debug_bot`).
 2. Replace the `manifest.id`, `bots.botId`, and `webApplicationInfo.id` with the App ID of the bot service you deployed in step 1 (this is the **Microsoft App ID** shown under **Bot Services → Configuration**).
 3. Submit the app for approval.
 4. Approve the pending app at [https://admin.teams.microsoft.com/policies/manage-apps](https://admin.teams.microsoft.com/policies/manage-apps) (requires Teams admin or PIM elevation). Filter by **Custom app** or search by name. Propagation can take a few hours; using Teams in the browser tends to be faster.
-
----
-
-## 5. Alert Rules Only
-
-If the bot service is already deployed and you only need to update/redeploy the alert rules, you can use the `alerts.bicep` template directly (or run `Initialize-PlatformTeamsNotificationApi.ps1`):
-
-```bash
-az deployment group create \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "deploy-$(date +%Y%m%d%H%M%S)-teams-alerts" \
-  --template-file devops/alerts.bicep \
-  --parameters \
-    environment="$ENVIRONMENT" \
-    logAnalyticsWorkspaceId="$LOG_ANALYTICS_ID"
-```

@@ -1,0 +1,47 @@
+apiVersion: operator.dash0.com/v1alpha1
+kind: Dash0View
+metadata:
+  name: platform-teams-notification-api-exceptions-__ENVIRONMENT__
+  annotations:
+    dash0.com/folder-path: "/Teams Notifications Api"
+  labels:
+    dash0.com/id: platform-teams-notification-api-exceptions-__ENVIRONMENT__
+spec:
+  type: spans
+  display:
+    name: Exceptions
+    description: Spans with ERROR status for platform-teams-notification-api.
+  filter:
+    - key: service.name
+      operator: is
+      value: platform-teams-notification-api
+    - key: otel.span.status.code
+      operator: is
+      value: ERROR
+    - key: error.type
+      operator: does_not_match
+      value: "\\d{3}|ServiceBusException|BlobNotFound|HttpRequestException"
+    - key: otel.span.status.message
+      operator: does_not_match
+      value: "OperationCanceledException|TaskCanceledException"
+  table:
+    columns:
+      - colSize: min-content
+        key: otel.span.start_time
+        label: Start Time
+      - colSize: minmax(auto, 1fr)
+        key: dash0.span.name
+        label: Operation
+      - colSize: minmax(auto, 1fr)
+        key: error.type
+        label: Exception Type
+      - colSize: minmax(auto, 2fr)
+        key: otel.span.status.message
+        label: Message
+      - colSize: minmax(auto, 1fr)
+        key: otel.trace.id
+        label: Trace Id
+      - key: dash0.view.builtin.span_events
+    sort:
+      - direction: descending
+        key: otel.span.start_time

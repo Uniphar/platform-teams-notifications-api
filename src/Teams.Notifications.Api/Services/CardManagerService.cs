@@ -551,8 +551,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
         return cosmosMessageStore.UpsertAsync(doc, token);
     }
 
-    private string BuildTeamsDeepLink(string teamId, string channelId, string messageId)
-        => $"https://teams.microsoft.com/l/message/{Uri.EscapeDataString(channelId)}/{Uri.EscapeDataString(messageId)}?groupId={Uri.EscapeDataString(teamId)}&tenantId={Uri.EscapeDataString(_tenantId)}";
+    private string BuildTeamsDeepLink(string teamId, string channelId, string messageId) => $"https://teams.microsoft.com/l/message/{Uri.EscapeDataString(channelId)}/{Uri.EscapeDataString(messageId)}?groupId={Uri.EscapeDataString(teamId)}&tenantId={Uri.EscapeDataString(_tenantId)}";
 
     private ConversationReference GetConversationReference(string channelId) =>
         new()

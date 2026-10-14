@@ -7,7 +7,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
     ///     even though the file exists. Retry with exponential backoff until it's populated or we give up.
     /// </summary>
     private static readonly ResiliencePipeline<DriveItem?> _webUrlRetryPolicy = new ResiliencePipelineBuilder<DriveItem?>()
-        .AddRetry(new RetryStrategyOptions<DriveItem?>
+        .AddRetry(new()
         {
             ShouldHandle = new PredicateBuilder<DriveItem?>().HandleResult(item => item?.WebUrl is null),
             MaxRetryAttempts = 4,

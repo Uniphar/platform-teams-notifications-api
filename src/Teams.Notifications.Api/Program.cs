@@ -94,15 +94,12 @@ builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.
 
 var keyVaultRemappedSettings = new Dictionary<string, string?>();
 var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
-if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
-    keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
+if (!string.IsNullOrWhiteSpace(appInsightsConnectionString)) keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
 
 var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
-if (!string.IsNullOrWhiteSpace(cosmosConnectionString))
-    keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
+if (!string.IsNullOrWhiteSpace(cosmosConnectionString)) keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
 
-if (keyVaultRemappedSettings.Count > 0)
-    builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
+if (keyVaultRemappedSettings.Count > 0) builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
 // this is what the bot is communicating on
 builder.Services.AddHttpClient(typeof(RestChannelServiceClientFactory).FullName!).AddHttpMessageHandler<RequestAndResponseLoggerHandler>();
 
@@ -162,7 +159,7 @@ builder.Services.AddHostedService<TeamsCardEventsTopicInitializerBackgroundServi
 
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection(CosmosOptions.SectionName));
 
-builder.Services.AddSingleton(sp =>
+builder.Services.AddSingleton(_ =>
 {
     var connectionString = builder.Configuration["CosmosStore:ConnectionString"] ?? throw new NoNullAllowedException("CosmosStore connection string is required");
     return new CosmosClient(connectionString,
@@ -205,12 +202,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi(options =>
 {
     // Azure API Management only supports OpenAPI 3.0; 3.1 nullable arrays (type: [string, null]) are rejected.
-    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
     options.AddDocumentTransformer((doc, _, _) =>
     {
         foreach (var server in doc.Servers ?? [])
-            if (server.Url != null && server.Url.Contains("uniphar.ie"))
-                server.Url = server.Url.Replace("http://", "https://");
+        {
+            if (server.Url != null && server.Url.Contains("uniphar.ie")) server.Url = server.Url.Replace("http://", "https://");
+        }
 
         return Task.CompletedTask;
     });

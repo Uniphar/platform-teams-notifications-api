@@ -14,6 +14,7 @@ on:
       - .github/workflows/shared-app-integration-tests-workflow.yaml
       - charts/**
       - src/**
+      - devops/dash0/**
 
 permissions:
   id-token: write

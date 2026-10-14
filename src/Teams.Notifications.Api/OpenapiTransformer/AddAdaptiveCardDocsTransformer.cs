@@ -33,28 +33,25 @@ public sealed class AddAdaptiveCardDocsTransformer : IOpenApiDocumentTransformer
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         var paths = document.Paths;
-        foreach (var path in paths)
-            foreach (var operation in (path.Value.Operations ?? [])
-                     .Where(operation => operation.Key == HttpMethod.Get))
-            {
-                if (operation.Value.Responses is null ||
-                    !operation.Value.Responses.TryGetValue("200", out var response) ||
-                    response.Content is null ||
-                    !response.Content.TryGetValue("application/json", out var mediaType))
-                {
-                    continue;
-                }
+        foreach (var operation in paths.SelectMany(path => (path.Value.Operations ?? [])
+                     .Where(operation => operation.Key == HttpMethod.Get)))
+        {
+            if (operation.Value.Responses is null ||
+                !operation.Value.Responses.TryGetValue("200", out var response) ||
+                response.Content is null ||
+                !response.Content.TryGetValue("application/json", out var mediaType))
+                continue;
 
-                mediaType.Schema = new OpenApiSchema
+            mediaType.Schema = new OpenApiSchema
+            {
+                Type = JsonSchemaType.Object,
+                ExternalDocs = new()
                 {
-                    Type = JsonSchemaType.Object,
-                    ExternalDocs = new()
-                    {
-                        Description = "Find out more about Adaptive Cards",
-                        Url = new("https://adaptivecards.io/schemas/adaptive-card.json")
-                    }
-                };
-            }
+                    Description = "Find out more about Adaptive Cards",
+                    Url = new("https://adaptivecards.io/schemas/adaptive-card.json")
+                }
+            };
+        }
 
         return Task.CompletedTask;
     }

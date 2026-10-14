@@ -1,7 +1,7 @@
-using Azure.Messaging.ServiceBus;
-using Azure.Messaging.ServiceBus.Administration;
 using System.Data;
 using System.Text.Json;
+using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus.Administration;
 using Teams.Notifications.Api.Commands;
 using Teams.Notifications.Api.Tests.TeamsClient;
 using IntegrationSuiteErrorRequest = Teams.Notifications.Api.Tests.TeamsClient.IntegrationSuiteErrorModel;
@@ -25,11 +25,7 @@ public sealed class TeamsNotificationApiIntegrationTests
     private static string _channelTeamName = string.Empty;
     private static string _serviceBusNamespace = string.Empty;
 
-    [ClassCleanup]
-    public static async Task ClassCleanup()
-    {
-        await DeleteSubscriptionIfPresentAsync(_subscriptionName);
-    }
+    [ClassCleanup] public static Task ClassCleanup() => DeleteSubscriptionIfPresentAsync(_subscriptionName);
 
     [ClassInitialize]
     public static async Task ClassInitialize(TestContext context)
@@ -111,6 +107,7 @@ public sealed class TeamsNotificationApiIntegrationTests
         var model = new LogicAppErrorRequest
         {
             UniqueId = uniqueId,
+            FailedJobId = "job-1",
             LogicAppFlow = "Teams notification API integration test",
             TimeStamp = DateTime.UtcNow.ToString("O"),
             OriginalBlobUri = "https://storage.example.test/blob.csv",
@@ -199,8 +196,10 @@ public sealed class TeamsNotificationApiIntegrationTests
         while (DateTimeOffset.UtcNow < timeoutAt)
         {
             var message = await receiver.ReceiveMessageAsync(TimeSpan.FromSeconds(10), cancellationToken);
-            if (message is null) Assert.Fail("There should always be a message");
+            // Events are published asynchronously, keep polling until the overall timeout
+            if (message is null) continue;
 
+            await receiver.CompleteMessageAsync(message, cancellationToken);
             if (!string.Equals(message.Subject, expectedSubject, StringComparison.Ordinal)) continue;
             var body = await JsonSerializer.DeserializeAsync<TeamsCardCreatedCommand>(message.Body.ToStream(), cancellationToken: cancellationToken);
             if (body is null) Assert.Fail("There should always be a body");

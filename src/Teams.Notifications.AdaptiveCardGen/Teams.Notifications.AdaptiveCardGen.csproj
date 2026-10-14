@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
+		<!-- Analyzers/source generators must target netstandard2.0 to load reliably in all Roslyn hosts (csc, IDEs, build servers) -->
+		<TargetFramework>netstandard2.0</TargetFramework>
 		<LangVersion>preview</LangVersion>
 		<Nullable>enable</Nullable>
 		<OutputItemType>Analyzer</OutputItemType>
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<IsRoslynComponent>true</IsRoslynComponent>
-		<NoWarn>$(NoWarn);RS1041</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<EmbeddedResource Include="resources\CardTemplateController.csgen" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.*" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="*" PrivateAssets="all" />
+		<PackageReference Include="System.Text.Json" Version="8.*" PrivateAssets="all" />
 	</ItemGroup>
 </Project>

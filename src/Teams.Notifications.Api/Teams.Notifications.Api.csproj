@@ -37,7 +37,7 @@
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="*" />
     <PackageReference Include="Uniphar.Platform.Telemetry" Version="*" />
     <PackageReference Include="Microsoft.Bcl.Memory" Version="*" />
-    <ProjectReference Include="..\Teams.Notifications.AdaptiveCardGen\Teams.Notifications.AdaptiveCardGen.csproj" OutputItemType="Analyzer" />
+    <ProjectReference Include="..\Teams.Notifications.AdaptiveCardGen\Teams.Notifications.AdaptiveCardGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <AdditionalFiles Include="Templates\**\*.json" />
   </ItemGroup>
 
