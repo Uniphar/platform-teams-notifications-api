@@ -1,26 +1,40 @@
 apiVersion: operator.dash0.com/v1alpha1
 kind: Dash0View
 metadata:
-  name: platform-teams-notification-api-fatal-logs-__ENVIRONMENT__
+  name: platform-teams-notification-api-exception-logs-__ENVIRONMENT__
   annotations:
     dash0.com/folder-path: "/Teams Notifications Api"
   labels:
-    dash0.com/id: platform-teams-notification-api-fatal-logs-__ENVIRONMENT__
+    dash0.com/id: platform-teams-notification-api-exception-logs-__ENVIRONMENT__
 spec:
   type: logs
   display:
-    name: Fatal Logs
-    description: FATAL log records for platform-teams-notification-api. Excludes custom events, which CustomEventTelemetryClient emits as LogCritical for the legacy App Insights path.
+    name: Only unexpected exceptions
+    description: Exception logs for platform-teams-notification-api, excludes custom events emitted by the CustomEventTelemetryClient.
   filter:
     - key: service.name
       operator: is
       value: platform-teams-notification-api
     - key: otel.log.severity.range
-      operator: is
-      value: FATAL
-    - key: "{OriginalFormat}"
+      operator: is_one_of
+      values:
+        - ERROR
+        - FATAL
+    - key: otel.scope.name
+      operator: is_not
+      value: Uniphar.Platform.Telemetry.CustomEventTelemetryClient
+    - key: exception.type
+      operator: is_not_one_of
+      values:
+        - TaskCanceledException
+        - ObjectDisposedException
+        - ServiceBusException
+        - BlobNotFound
+        - HttpRequestException
+    - key: exception.message
       operator: does_not_match
-      value: "{microsoft.custom_event.name}"
+      value: "OperationCanceledException|TaskCanceledException"
+
   table:
     columns:
       - colSize: min-content

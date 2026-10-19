@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform-teams-notification-api-exception-logs-detected-__ENVIRONMENT__
+  labels:
+    dash0.com/id: platform-teams-notification-api-exception-logs-detected-__ENVIRONMENT__
+spec:
+  groups:
+    - name: Teams Notifications Api
+      interval: 1m
+      rules:
+        - alert: Exception Logs Detected (__ENVIRONMENT__)
+          expr: sum(increase({otel_metric_name="dash0.logs", service_name="platform-teams-notification-api", otel_log_severity_range=~"ERROR|FATAL", otel_scope_name!="Uniphar.Platform.Telemetry.CustomEventTelemetryClient", exception_type!~"TaskCanceledException|ObjectDisposedException|ServiceBusException|BlobNotFound|HttpRequestException", exception_message!~`.*(OperationCanceledException|TaskCanceledException).*`}[2m])) > 2
+          for: 0m
+          annotations:
+            summary: "Exception logs detected in platform-teams-notification-api (__ENVIRONMENT__)"
+            description: "More than 2 ERROR or FATAL log records were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 2 minutes. Open the 'Only unexpected exceptions' view in the 'Teams Notifications Api' folder in Logging to see them."
+            dash0.com/notification-channel-ids: platform-apps-team-__ENVIRONMENT__
+          labels:
+            environment: __ENVIRONMENT__
+            service: platform-teams-notification-api
