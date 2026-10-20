@@ -90,7 +90,7 @@ var environment = builder.Environment.EnvironmentName ?? throw new NoNullAllowed
 TokenCredential credentials = new DefaultAzureCredential();
 var kvName = environment == "local" ? "dev" : environment;
 // Load all secrets from Key Vault, then remap only the legacy keys this app expects.
-builder.Configuration.AddAzureKeyVault(new($"https://uni-devops-app-{kvName}-kv.vault.azure.net/"), credentials);
+builder.Configuration.AddUniOldKeyvault(kvName, credentials);
 
 var keyVaultRemappedSettings = new Dictionary<string, string?>();
 var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
