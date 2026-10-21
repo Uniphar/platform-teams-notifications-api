@@ -10,7 +10,7 @@ spec:
   type: logs
   display:
     name: Only unexpected exceptions
-    description: Exception logs for platform-teams-notification-api, excludes custom events emitted by the CustomEventTelemetryClient.
+    description: Exception logs for platform-teams-notification-api.
   filter:
     - key: service.name
       operator: is
@@ -20,9 +20,6 @@ spec:
       values:
         - ERROR
         - FATAL
-    - key: otel.scope.name
-      operator: is_not
-      value: Uniphar.Platform.Telemetry.CustomEventTelemetryClient
     - key: exception.type
       operator: is_not_one_of
       values:
