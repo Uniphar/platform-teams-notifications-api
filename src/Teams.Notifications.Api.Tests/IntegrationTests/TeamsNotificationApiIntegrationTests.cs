@@ -40,7 +40,7 @@ public sealed class TeamsNotificationApiIntegrationTests
             .SetBasePath(apiProjectPath)
             .AddJsonFile("appsettings.json", false, false)
             .AddJsonFile($"appsettings.{runEnv}.json", true, false)
-            .AddIntegrationTestOldUniKeyvault(env, new DefaultAzureCredential())
+            .AddIntegrationTestOldUniKeyvault("platform-teams-notification-api", "platform", env, new DefaultAzureCredential())
             .Build();
 
         _serviceBusNamespace = ResolveServiceBusNamespace(config);
