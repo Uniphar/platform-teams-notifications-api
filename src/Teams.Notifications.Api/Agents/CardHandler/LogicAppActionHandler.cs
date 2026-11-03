@@ -127,7 +127,18 @@ internal static class LogicAppActionHandler
                         ["Error"] = ex.Message,
                         ["ExceptionType"] = ex.GetType().Name
                     });
-                throw;
+
+                // Returning a message instead of throwing avoids Teams showing "Unable to reach app"
+                try
+                {
+                    await turnContext.SendActivityAsync(MessageFactory.Text($"Reprocessing failed: {ex.Message}"), cancellationToken);
+                }
+                catch (Exception replyEx)
+                {
+                    logger.LogError(replyEx, "Failed to post the error reply to the thread");
+                }
+
+                return AdaptiveCardInvokeResponseFactory.Message("Something went wrong, see the comments on this message for details");
             }
         }
     }

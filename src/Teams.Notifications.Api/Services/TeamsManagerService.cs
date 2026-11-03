@@ -280,7 +280,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         var item = await GetDriveItem(driveId, fileLocation, token);
         if (item?.Name == null)
         {
-            var errorMsg = "Name not found";
+            var errorMsg = $"Error while trying to get file: {fileLocation}";
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
@@ -314,10 +314,15 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     private async Task<DriveItem?> GetDriveItem(string driveId, string fileUrl, CancellationToken cancellationToken = default)
     {
-        var path = Path.GetDirectoryName(fileUrl);
-        var rootRequest = graphClient.Drives[driveId].Root;
-        var children = rootRequest.ItemWithPath(path).Children;
-        var driveItems = (await children.GetAsync(cancellationToken: cancellationToken))?.Value;
-        return driveItems?.FirstOrDefault(x => x.Name == Path.GetFileName(fileUrl));
+        // Direct lookup avoids paging limits, OS-specific path separators and case-sensitive name matching of a folder listing
+        try
+        {
+            return await graphClient.Drives[driveId].Items["root"].ItemWithPath(fileUrl).GetAsync(cancellationToken: cancellationToken);
+        }
+        catch (Microsoft.Graph.Beta.Models.ODataErrors.ODataError ex) when (ex.ResponseStatusCode == 404)
+        {
+            logger.LogError(ex, "File {FileLocation} not found in drive {DriveId}", fileUrl, driveId);
+            return null;
+        }
     }
 }
