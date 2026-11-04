@@ -89,7 +89,8 @@ internal static class LogicAppActionHandler
                             ["FileName"] = fileName,
                             ["MessageId"] = messageId
                         });
-
+                    var responseContent = await uploadResponse.Content.ReadAsStringAsync(cancellationToken);
+                    if (!string.IsNullOrWhiteSpace(responseContent)) await turnContext.SendActivityAsync(MessageFactory.Text(responseContent), cancellationToken);
                     return AdaptiveCardInvokeResponseFactory.Message(model.PostSuccessMessage ?? "Success");
                 }
 
