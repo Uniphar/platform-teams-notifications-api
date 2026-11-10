@@ -54,4 +54,4 @@ jobs:
       - name: docker build test
         working-directory: ./src/
         run: |
-          docker build --no-cache . -f ./$APPLICATION_NAME/Dockerfile
+          docker build . -f ./$APPLICATION_NAME/Dockerfile

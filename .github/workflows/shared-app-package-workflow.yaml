@@ -65,7 +65,7 @@ jobs:
 
       - name: docker build
         working-directory: ./src
-        run: docker build --no-cache . -f ./$APPLICATION_FOLDER/Dockerfile -t $IMAGE_REPOSITORY:$APPLICATION_VERSION -t $IMAGE_REPOSITORY:latest
+        run: docker build . -f ./$APPLICATION_FOLDER/Dockerfile -t $IMAGE_REPOSITORY:$APPLICATION_VERSION -t $IMAGE_REPOSITORY:latest
 
       - name: docker push
         working-directory: ./src
