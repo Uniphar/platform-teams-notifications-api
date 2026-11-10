@@ -17,6 +17,17 @@ If you need to provision the Azure infrastructure manually (bot service, Graph A
 
 ## local setup
 
+### Container package restore
+
+CI and CD build the container with `docker build --no-cache` so Docker cannot reuse
+a layer containing outdated floating NuGet dependencies. The Dockerfile runs
+`dotnet restore --force-evaluate --no-http-cache` to resolve the latest versions
+allowed by the package version patterns, then builds and publishes with
+`--no-restore` to reuse that resolution. Use `--no-cache` for local Docker builds
+when you need fresh package versions too.
+
+### Debug bot setup
+
 Local setup will use the debug bot to communicate making it possible to locally debug.
 We run the rest of the application in Azure AKS with WorkLoad identities, these are created with `azwi` and their clientId's are stored in a Service account, we use the service acount in the pod to authenticate, more information can be found here: `https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview`
 
