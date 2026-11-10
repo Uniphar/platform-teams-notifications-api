@@ -15,7 +15,7 @@ spec:
           keep_firing_for: 15m
           annotations:
             summary: "Exception logs detected in platform-teams-notification-api (__ENVIRONMENT__)"
-            description: "One or more ERROR or FATAL log records were recorded for platform-teams-notification-api in __ENVIRONMENT__ over the last 10 minutes. Open the 'Only unexpected exceptions' view in the 'Teams Notifications Api' folder in Logging to see them."
+            description: "One or more ERROR or FATAL log records were detected for platform-teams-notification-api in __ENVIRONMENT__ within a 5-minute evaluation window. The alert remains firing for 15 minutes after the condition clears. Open the 'Only unexpected exceptions' view in the 'Teams Notifications Api' folder in Logging to see them."
             dash0.com/notification-channel-ids: platform-apps-team-__ENVIRONMENT__
           labels:
             environment: __ENVIRONMENT__
