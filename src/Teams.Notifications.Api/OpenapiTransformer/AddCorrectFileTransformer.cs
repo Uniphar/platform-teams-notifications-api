@@ -19,7 +19,7 @@ public sealed class AddCorrectFileTransformer : IOpenApiOperationTransformer
         if (operation.RequestBody?.Content == null || !operation.RequestBody.Content.TryGetValue("multipart/form-data", out var value)) return Task.CompletedTask;
         if (value.Schema is { Type: JsonSchemaType.Object, Properties: not null } && value.Schema.Properties.ContainsKey("file"))
         {
-            operation.RequestBody.Content["multipart/form-data"] = new()
+            operation.RequestBody.Content["multipart/form-data"] = new OpenApiMediaType
             {
                 Encoding = new Dictionary<string, OpenApiEncoding>
                 {
