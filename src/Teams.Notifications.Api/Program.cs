@@ -93,9 +93,6 @@ var kvName = environment == "local" ? "dev" : environment;
 builder.Configuration.AddUniOldKeyvault(appPathPrefix, "platform", kvName, credentials);
 
 var keyVaultRemappedSettings = new Dictionary<string, string?>();
-var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS:CONNECTION:STRING"];
-if (!string.IsNullOrWhiteSpace(appInsightsConnectionString)) keyVaultRemappedSettings["APPLICATIONINSIGHTS_CONNECTION_STRING"] = appInsightsConnectionString;
-
 var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
 if (!string.IsNullOrWhiteSpace(cosmosConnectionString)) keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
 

@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.x
+          dotnet-version: 11.x
 
       - name: check configs formatted
         working-directory: ./src/Teams.Notifications.Formatter
