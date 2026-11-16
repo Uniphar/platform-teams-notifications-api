@@ -1,5 +1,5 @@
 {
-  "runtime": "Net100",
+  "runtime": "Net110",
   "defaultVariables": null,
   "documentGenerator": {
     "fromDocument": {
