@@ -93,8 +93,9 @@ var kvName = environment == "local" ? "dev" : environment;
 builder.Configuration.AddUniOldKeyvault(appPathPrefix, "platform", kvName, credentials);
 
 var keyVaultRemappedSettings = new Dictionary<string, string?>();
-var cosmosConnectionString = builder.Configuration["COSMOS:CONNECTIONSTRING"];
-if (!string.IsNullOrWhiteSpace(cosmosConnectionString)) keyVaultRemappedSettings["CosmosStore:ConnectionString"] = cosmosConnectionString;
+var cosmosMasterKey = builder.Configuration[$"uni-devops-{kvName}-cosmos-access-key"];
+if (!string.IsNullOrWhiteSpace(cosmosMasterKey))
+    keyVaultRemappedSettings["CosmosStore:ConnectionString"] = $"AccountEndpoint=https://uni-devops-{kvName}-cosmos.documents.azure.com:443/;AccountKey={cosmosMasterKey}";
 
 if (keyVaultRemappedSettings.Count > 0) builder.Configuration.AddInMemoryCollection(keyVaultRemappedSettings);
 // this is what the bot is communicating on
