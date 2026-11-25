@@ -5,6 +5,7 @@ public interface ITeamsManagerService
     Task CheckOrInstallBotIsInTeam(string teamId, CancellationToken token);
     Task<string> GetTeamIdAsync(string teamName, CancellationToken token);
     Task<string> GetChannelIdAsync(string teamId, string channelName, CancellationToken token);
+    Task<string> GetOrCreateChannelIdAsync(string teamId, string channelName, CancellationToken token);
     Task<string> GetGroupNameUniqueName(string groupId, CancellationToken token);
     Task<string> GetTeamName(string teamId, CancellationToken token);
     Task<string> GetUserAadObjectIdAsync(string userPrincipalName, CancellationToken token);

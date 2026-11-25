@@ -15,6 +15,17 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         })
         .Build();
 
+    private static readonly ResiliencePipeline<DriveItem?> _filesFolderRetryPolicy = new ResiliencePipelineBuilder<DriveItem?>()
+        .AddRetry(new()
+        {
+            ShouldHandle = new PredicateBuilder<DriveItem?>()
+                .Handle<Microsoft.Graph.Beta.Models.ODataErrors.ODataError>(ex => ex.ResponseStatusCode is 404 or 409 or 423 or 503)
+                .HandleResult(item => item?.ParentReference?.DriveId is null),
+            MaxRetryAttempts = 5,
+            DelayGenerator = args => ValueTask.FromResult<TimeSpan?>(TimeSpan.FromSeconds(Math.Pow(2, args.AttemptNumber)))
+        })
+        .Build();
+
     private readonly string _clientId = config["AZURE_CLIENT_ID"] ?? throw new ArgumentNullException(nameof(config), "Missing AZURE_CLIENT_ID");
 
     public async Task CheckOrInstallBotIsInTeam(string teamId, CancellationToken token)
@@ -125,24 +136,44 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<string> GetChannelIdAsync(string teamId, string channelName, CancellationToken token)
     {
+        var channelId = await FindChannelIdAsync(teamId, channelName, token);
+        if (channelId is not null) return channelId;
+
+        var errorMsg = $"Channel with name {channelName} does not exist in team {teamId}";
+        logger.LogError(errorMsg);
+        throw new InvalidOperationException(errorMsg);
+    }
+
+    public async Task<string> GetOrCreateChannelIdAsync(string teamId, string channelName, CancellationToken token)
+    {
+        var existingId = await FindChannelIdAsync(teamId, channelName, token);
+        if (existingId is not null) return existingId;
+
+        logger.LogInformation("Channel '{Channel}' not found in team '{TeamId}', creating it", channelName, teamId);
+        var created = await graphClient
+            .Teams[teamId]
+            .Channels
+            .PostAsync(new() { DisplayName = channelName, MembershipType = ChannelMembershipType.Standard }, cancellationToken: token);
+
+        var channelId = created?.Id ?? throw new InvalidOperationException($"Failed to create channel with name {channelName} in team {teamId}");
+        // provision the Files tab/SharePoint folder up front so uploads and the tab work without a user opening it first
+        await GetChannelDriveIdAsync(teamId, channelId, token);
+        return channelId;
+    }
+
+    private async Task<string?> FindChannelIdAsync(string teamId, string channelName, CancellationToken token)
+    {
         var channels = await graphClient
             .Teams[teamId]
             .Channels
             .GetAsync(request =>
                 {
-                    request.QueryParameters.Filter = $"displayName eq '{channelName}'";
+                    request.QueryParameters.Filter = $"displayName eq '{channelName.Replace("'", "''")}'";
                     request.QueryParameters.Select = ["id"];
                 },
                 token);
 
-        if (channels is not { Value: [{ Id: var channelId }] })
-        {
-            var errorMsg = $"Channel with name {channelName} does not exist in team {teamId}";
-            logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
-
-        return channelId ?? throw new InvalidOperationException($"Channel with name {channelName} does not exist");
+        return channels is { Value: [{ Id: var channelId }] } ? channelId : null;
     }
 
     public async Task<string> GetGroupNameUniqueName(string groupId, CancellationToken token)
@@ -239,21 +270,7 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
 
     public async Task<(bool Success, string Url)> UploadFile(string teamId, string channelId, string fileLocation, Stream fileStream, CancellationToken token)
     {
-        var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
-        if (filesFolder == null)
-        {
-            var errorMsg = "No files folder found for the channel";
-            logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
-
-        var driveId = filesFolder.ParentReference?.DriveId;
-        if (driveId == null)
-        {
-            var errorMsg = "No drive found for the channel";
-            logger.LogError(errorMsg);
-            throw new InvalidOperationException(errorMsg);
-        }
+        var driveId = await GetChannelDriveIdAsync(teamId, channelId, token);
 
         var item = graphClient.Drives[driveId].Items["root"];
         // same as the list, we need to make sure you don't just drop it in the sharepoint site folder
@@ -266,9 +283,16 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
         return itemFound is { WebUrl: not null } ? (true, itemFound.WebUrl + "?web=1") : (false, string.Empty);
     }
 
-    public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)
+    /// <summary>
+    ///     Requesting the channel's filesFolder makes Graph provision the SharePoint folder (the "Files" tab),
+    ///     which otherwise only happens when a user opens the tab. For a freshly created channel this can briefly fail, so retry.
+    /// </summary>
+    private async Task<string> GetChannelDriveIdAsync(string teamId, string channelId, CancellationToken token)
     {
-        var filesFolder = await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: token);
+        var filesFolder = await _filesFolderRetryPolicy.ExecuteAsync(
+            async ct => await graphClient.Teams[teamId].Channels[channelId].FilesFolder.GetAsync(cancellationToken: ct),
+            token);
+
         var driveId = filesFolder?.ParentReference?.DriveId;
         if (driveId == null)
         {
@@ -276,6 +300,13 @@ public class TeamsManagerService(GraphServiceClient graphClient, IConfiguration 
             logger.LogError(errorMsg);
             throw new InvalidOperationException(errorMsg);
         }
+
+        return driveId;
+    }
+
+    public async Task<string> GetFileNameAsync(string teamId, string channelId, string fileLocation, CancellationToken token)
+    {
+        var driveId = await GetChannelDriveIdAsync(teamId, channelId, token);
 
         var item = await GetDriveItem(driveId, fileLocation, token);
         if (item?.Name == null)

@@ -94,7 +94,7 @@ public class CardManagerServiceTests
         var model = new BaseTemplateModel { UniqueId = "uid" };
         _teamsManagerServiceMock.Setup(x => x.GetTeamIdAsync("team", CancellationToken.None)).ReturnsAsync("teamId");
         _teamsManagerServiceMock.Setup(x => x.CheckOrInstallBotIsInTeam("teamId", CancellationToken.None)).Returns(Task.CompletedTask);
-        _teamsManagerServiceMock.Setup(x => x.GetChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
+        _teamsManagerServiceMock.Setup(x => x.GetOrCreateChannelIdAsync("teamId", "channel", CancellationToken.None)).ReturnsAsync("channelId");
         _messageStoreMock
             .Setup(x => x.FindMessageByUniqueId("uid", CancellationToken.None))
             .ReturnsAsync((StoredMessage?)null);
