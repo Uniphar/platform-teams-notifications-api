@@ -172,7 +172,7 @@ public sealed class CardManagerService(IChannelAdapter adapter, ITeamsManagerSer
             var stopwatch = Stopwatch.StartNew();
             var teamId = await teamsManagerService.GetTeamIdAsync(teamName, token);
             await teamsManagerService.CheckOrInstallBotIsInTeam(teamId, token);
-            var channelId = await teamsManagerService.GetChannelIdAsync(teamId, channelName, token);
+            var channelId = await teamsManagerService.GetOrCreateChannelIdAsync(teamId, channelName, token);
 
             var stored = await cosmosMessageStore.FindMessageByUniqueId(model.UniqueId, token);
             var isCreate = stored is null;
