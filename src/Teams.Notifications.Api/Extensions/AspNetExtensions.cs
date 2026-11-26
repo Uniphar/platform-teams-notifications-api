@@ -74,6 +74,7 @@ internal static class AspNetExtensions
 
                     // Using Microsoft.IdentityModel.Validators
                     options.TokenValidationParameters.EnableAadSigningKeyIssuerValidation();
+                    EnableAadSigningKeyIssuerValidationForEntraTokens(options.TokenValidationParameters);
 
                     options.Events = new()
                     {
@@ -130,4 +131,23 @@ internal static class AspNetExtensions
                 });
         services.AddAuthentication(options => { options.DefaultScheme = "NotificationScheme"; });
     }
+
+    private static void EnableAadSigningKeyIssuerValidationForEntraTokens(TokenValidationParameters tokenValidationParameters)
+    {
+        var signingKeyValidator = tokenValidationParameters.IssuerSigningKeyValidator;
+        if (signingKeyValidator is not null)
+        {
+            tokenValidationParameters.IssuerSigningKeyValidator = (securityKey, token, validationParameters) =>
+                IsBotFrameworkToken(token) || signingKeyValidator(securityKey, token, validationParameters);
+        }
+
+        var signingKeyValidatorUsingConfiguration = tokenValidationParameters.IssuerSigningKeyValidatorUsingConfiguration;
+        if (signingKeyValidatorUsingConfiguration is not null)
+        {
+            tokenValidationParameters.IssuerSigningKeyValidatorUsingConfiguration = (securityKey, token, configuration, validationParameters) =>
+                IsBotFrameworkToken(token) || signingKeyValidatorUsingConfiguration(securityKey, token, configuration, validationParameters);
+        }
+    }
+
+    private static bool IsBotFrameworkToken(SecurityToken token) => (token as JwtSecurityToken)?.Issuer == AuthenticationConstants.BotFrameworkTokenIssuer;
 }
